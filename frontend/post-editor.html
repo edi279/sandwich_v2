@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.youtube.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; frame-src 'self' https://www.youtube.com;">
+<title>게시글 작성 - 샌드위치냠냠</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<style>
+body { background-color:#f8f9fa; }
+main { padding-top: 2rem; padding-bottom: 4rem; }
+.editor-container { background-color: white; border-radius: 0.5rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
+.editor-header { border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem; }
+.editor-body { padding: 1.5rem; }
+.editor-top-bar { padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.editor-top-bar-left { display: flex; align-items: center; gap: 1rem; }
+.editor-top-bar-right { display: flex; gap: 0.5rem; }
+.title-input-wrapper { position: relative; margin: 1.5rem; }
+.title-input-wrapper .form-control { padding-right: 80px; }
+.title-char-count { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #6c757d; font-size: 0.875rem; }
+.editor-toolbar { background-color: #f8f9fa; border: 1px solid #dee2e6; border-bottom: none; padding: 0.5rem; border-radius: 0.375rem 0.375rem 0 0; display: flex; flex-wrap: wrap; align-items: center; }
+.editor-toolbar button { margin-right: 0.35rem; margin-bottom: 0.2rem; }
+.editor-toolbar .btn-group { margin-left: 0.3rem; margin-right: 0.3rem;}
+.editor-content-wrapper { margin: 0 1.5rem 1.5rem 1.5rem; }
+.editor-content { border: 1px solid #dee2e6; border-top: none; min-height: 400px; padding: 1rem; border-radius: 0 0 0.375rem 0.375rem; font-size: 14px; line-height: 1.6; }
+.editor-content:focus { outline: none; border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
+.editor-content h1 { font-size: 32px; font-weight: 600; line-height: 1.2; margin: 0.65em 0 0.4em 0; }
+.editor-content h2 { font-size: 24px; font-weight: 600; line-height: 1.2; margin: 0.6em 0 0.4em 0; }
+.editor-content h3 { font-size: 18px; font-weight: 600; line-height: 1.2; margin: 0.55em 0 0.4em 0; }
+.editor-content p { font-size: 14px; margin: 0.35em 0; }
+.editor-content iframe { max-width: 100%; margin: 1em 0; border-radius: 0.375rem; }
+.tag-input { border-radius: 0.375rem; }
+.tag-badge { margin: 0.25rem; cursor: pointer; }
+.tag-section { padding: 0 1.5rem 1.5rem 1.5rem; }
+.publish-options { display: none; }
+#previewModal .modal-footer { 
+  justify-content: center; 
+  padding: 1rem;
+}
+#publishFromModalBtn { 
+  min-width: 110px;
+  padding-left: calc(1rem + 10px);
+  padding-right: calc(1rem + 10px);
+}
+</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="#">샌드위치냠냠</a>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+      <div class="editor-container">
+        <form id="postForm">
+          <!-- 상단 바: 카테고리와 버튼 -->
+          <div class="editor-top-bar">
+            <div class="editor-top-bar-left">
+              <select class="form-select" id="postCategory" name="category" style="width: auto; min-width: 300px;">
+                <option value="">카테고리를 선택하세요</option>
+                <option value="recipe">🥪이렇게 만들어요</option>
+                <option value="tip">💡정보 공유해요</option>
+              </select>
+            </div>
+            <div class="editor-top-bar-right">
+              <button type="button" class="btn btn-outline-secondary" id="saveBtn">
+                임시 저장
+              </button>
+              <button type="submit" class="btn btn-primary" id="publishBtn">
+                발행
+              </button>
+            </div>
+          </div>
+
+          <!-- 제목 입력 -->
+          <div class="title-input-wrapper">
+            <input type="text" class="form-control form-control-lg" id="postTitle" name="title" 
+                   placeholder="게시글 제목을 입력하세요" required 
+                   maxlength="200" autocomplete="off">
+            <span class="title-char-count">
+              <span id="titleCharCount">0</span>/200
+            </span>
+          </div>
+
+          <!-- 본문 에디터 -->
+          <div class="editor-content-wrapper">
+            <div class="editor-toolbar" id="editorToolbar" role="toolbar">
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" id="fontSizeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    본문
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
+                    <li><a class="dropdown-item" href="#" data-format="h1">H1</a></li>
+                    <li><a class="dropdown-item" href="#" data-format="h2">H2</a></li>
+                    <li><a class="dropdown-item" href="#" data-format="h3">H3</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-format="p">본문</a></li>
+                </ul>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-command="bold" title="굵게">
+                <strong>B</strong>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-command="italic" title="기울임">
+                <em>I</em>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-command="underline" title="밑줄">
+                <u>U</u>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-command="insertUnorderedList" title="글머리 기호">
+                • 목록
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-command="insertOrderedList" title="번호 매기기">
+                1. 목록
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-command="createLink" title="링크">
+                🔗
+              </button>
+              <div style="flex-grow: 1;"></div>
+            </div>
+            <div class="editor-content" id="editorContent" contenteditable="true" 
+                 placeholder="내용을 입력하세요..." 
+                 data-placeholder="내용을 입력하세요..."></div>
+            <input type="hidden" id="postContent" name="content" required>
+          </div>
+
+          <!-- 태그 입력 -->
+          <div class="tag-section">
+            <div id="tagList" class="mt-2"></div>
+            <input type="hidden" id="postTags" name="tags">
+            <input type="text" class="form-control tag-input mt-2" id="tagInput" 
+                   placeholder="태그를 입력하고 Enter 키를 누르세요. 태그는 최대 10개까지 추가할 수 있습니다." 
+                   autocomplete="off" maxlength="50">
+          </div>
+        </form>
+      </div>
+
+      <!-- 미리보기 모달 -->
+      <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">미리보기</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <h3 id="previewTitle" class="mb-3"></h3>
+              <div id="previewContent" class="border-top pt-3"></div>
+              <div class="mt-3">
+                <small class="text-muted">
+                  카테고리: <span id="previewCategory"></span> | 
+                  태그: <span id="previewTags"></span>
+                </small>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="publishFromModalBtn">발행</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+<script>
+// XSS 방어를 위한 유틸리티 함수
+const SecurityUtils = {
+  // HTML 이스케이프
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+  },
+
+  // DOMPurify를 사용하여 HTML 정화
+  sanitizeHtml(dirty) {
+    return DOMPurify.sanitize(dirty, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                     'blockquote', 'a', 'img', 'code', 'pre', 'iframe'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'width', 'height', 'frameborder', 'allow', 
+                     'allowfullscreen', 'style'],
+      ALLOW_DATA_ATTR: false
+    });
+  },
+  
+  // 유튜브 URL에서 비디오 ID 추출
+  extractYouTubeVideoId(url) {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  },
+  
+  // 유튜브 링크를 iframe으로 변환
+  convertYouTubeToIframe(html) {
+    if (!html || typeof html !== 'string') return html;
+    
+    // 이미 iframe이 포함되어 있으면 변환하지 않음
+    if (html.includes('<iframe') && html.includes('youtube.com/embed')) {
+      return html;
+    }
+    
+    // 유튜브 URL 패턴 매칭 (다양한 형식 지원)
+    const youtubePatterns = [
+      /https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/gi,
+      /https?:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/gi,
+      /https?:\/\/(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]+)/gi
+    ];
+    
+    let result = html;
+    
+    youtubePatterns.forEach(pattern => {
+      result = result.replace(pattern, (match, videoId) => {
+        return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe>`;
+      });
+    });
+    
+    // <a> 태그 내의 유튜브 링크도 처리
+    result = result.replace(/<a[^>]*>(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+))<\/a>/gi, (match, url, videoId) => {
+      return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe>`;
+    });
+    
+    return result;
+  },
+
+  // 입력 검증
+  validateInput(text, maxLength = null) {
+    if (typeof text !== 'string') return false;
+    if (maxLength && text.length > maxLength) return false;
+    return true;
+  }
+};
+
+// 에디터 관리
+const EditorManager = {
+  contentElement: document.getElementById('editorContent'),
+  titleElement: document.getElementById('postTitle'),
+  contentInput: document.getElementById('postContent'),
+  
+  init() {
+    this.setupToolbar();
+    this.setupPlaceholder();
+    this.setupWordCount();
+    this.setupTagInput();
+    this.setupFormSubmit();
+    this.setupPasteHandler();
+  },
+
+  setupToolbar() {
+    const toolbar = document.getElementById('editorToolbar');
+    const fontSizeDropdown = document.getElementById('fontSizeDropdown');
+    
+    // 일반 버튼 클릭 처리
+    toolbar.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-command]');
+      if (!btn) return;
+      
+      e.preventDefault();
+      const command = btn.dataset.command;
+      const value = btn.dataset.value || null;
+      
+      this.contentElement.focus();
+      
+      if (command === 'createLink') {
+        const url = prompt('링크 URL을 입력하세요:');
+        if (url && this.isValidUrl(url)) {
+          document.execCommand(command, false, url);
+        }
+      } else {
+        document.execCommand(command, false, value);
+      }
+    });
+    
+    // 폰트 크기 드롭다운 처리
+    const dropdownMenu = toolbar.querySelector('.dropdown-menu');
+    if (dropdownMenu) {
+      const dropdownItems = dropdownMenu.querySelectorAll('.dropdown-item');
+      dropdownItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const format = item.dataset.format;
+          const label = item.textContent.trim();
+          
+          this.contentElement.focus();
+          document.execCommand('formatBlock', false, format);
+          
+          // 드롭다운 버튼 텍스트 업데이트
+          fontSizeDropdown.textContent = label;
+          
+          // Bootstrap 드롭다운 닫기
+          const dropdown = bootstrap.Dropdown.getInstance(fontSizeDropdown);
+          if (dropdown) {
+            dropdown.hide();
+          }
+        });
+      });
+    }
+    
+    // 현재 선택된 블록의 스타일에 따라 드롭다운 텍스트 업데이트
+    this.contentElement.addEventListener('keyup', () => this.updateFontSizeDropdown());
+    this.contentElement.addEventListener('mouseup', () => this.updateFontSizeDropdown());
+  },
+  
+  updateFontSizeDropdown() {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    let element = container.nodeType === Node.TEXT_NODE ? container.parentElement : container;
+    
+    // 최상위 블록 요소 찾기
+    while (element && element !== this.contentElement) {
+      const tagName = element.tagName?.toLowerCase();
+      if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'p') {
+        const dropdown = document.getElementById('fontSizeDropdown');
+        const labels = { 'h1': 'H1', 'h2': 'H2', 'h3': 'H3', 'p': '본문' };
+        dropdown.textContent = labels[tagName] || '본문';
+        return;
+      }
+      element = element.parentElement;
+    }
+  },
+
+  isValidUrl(string) {
+    try {
+      const url = new URL(string);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  },
+
+  setupPlaceholder() {
+    const element = this.contentElement;
+    const placeholder = element.dataset.placeholder;
+    
+    const checkPlaceholder = () => {
+      if (element.textContent.trim() === '') {
+        element.classList.add('text-muted');
+        element.textContent = placeholder;
+      }
+    };
+    
+    element.addEventListener('focus', () => {
+      if (element.textContent === placeholder) {
+        element.textContent = '';
+        element.classList.remove('text-muted');
+      }
+    });
+    
+    element.addEventListener('blur', () => {
+      if (element.textContent.trim() === '') {
+        checkPlaceholder();
+      }
+    });
+    
+    checkPlaceholder();
+  },
+
+  setupWordCount() {
+    // 제목 글자 수 업데이트
+    const updateTitleCount = () => {
+      const count = this.titleElement.value.length;
+      document.getElementById('titleCharCount').textContent = count;
+    };
+    
+    this.titleElement.addEventListener('input', updateTitleCount);
+    updateTitleCount(); // 초기값 설정
+  },
+
+  setupTagInput() {
+    const tagInput = document.getElementById('tagInput');
+    const tagList = document.getElementById('tagList');
+    const tags = [];
+    const maxTags = 10;
+
+    const updateTagInput = () => {
+      document.getElementById('postTags').value = tags.join(',');
+    };
+
+    const addTag = (tagText) => {
+      const tag = tagText.trim().toLowerCase();
+      
+      if (!tag) return false;
+      if (tags.length >= maxTags) {
+        alert(`태그는 최대 ${maxTags}개까지 추가할 수 있습니다.`);
+        return false;
+      }
+      if (tags.includes(tag)) {
+        alert('이미 추가된 태그입니다.');
+        return false;
+      }
+      if (tag.length > 20) {
+        alert('태그는 최대 20자까지 입력 가능합니다.');
+        return false;
+      }
+      if (!/^[가-힣a-zA-Z0-9\s]+$/.test(tag)) {
+        alert('태그는 한글, 영문, 숫자만 사용할 수 있습니다.');
+        return false;
+      }
+
+      tags.push(tag);
+      updateTagInput();
+      renderTags();
+      tagInput.value = '';
+      return true;
+    };
+
+    const removeTag = (tag) => {
+      const index = tags.indexOf(tag);
+      if (index > -1) {
+        tags.splice(index, 1);
+        updateTagInput();
+        renderTags();
+      }
+    };
+
+    const renderTags = () => {
+      tagList.innerHTML = tags.map(tag => 
+        `<span class="badge bg-primary tag-badge">${SecurityUtils.escapeHtml(tag)} <span class="ms-1" style="cursor: pointer;">×</span></span>`
+      ).join('');
+      
+      tagList.querySelectorAll('.tag-badge').forEach((badge, index) => {
+        badge.addEventListener('click', () => {
+          removeTag(tags[index]);
+        });
+      });
+    };
+
+    tagInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (addTag(tagInput.value)) {
+          // 태그가 성공적으로 추가됨
+        }
+      }
+    });
+  },
+
+  setupFormSubmit() {
+    const form = document.getElementById('postForm');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    
+    // 발행 버튼 클릭 시 미리보기 모달 표시
+    const publishBtn = document.getElementById('publishBtn');
+    publishBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      // 제목 검증
+      const title = this.titleElement.value.trim();
+      if (!SecurityUtils.validateInput(title, 200)) {
+        alert('제목을 올바르게 입력해주세요. (최대 200자)');
+        return;
+      }
+      
+      // 본문 검증
+      let content = this.contentElement.innerHTML;
+      if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
+        alert('본문을 입력해주세요.');
+        return;
+      }
+      
+      // 정화된 내용이 비어있는지 확인
+      const textContent = this.contentElement.textContent.trim();
+      if (!textContent || textContent === this.contentElement.dataset.placeholder) {
+        alert('본문을 입력해주세요.');
+        return;
+      }
+      
+      // 미리보기 모달 표시
+      this.showPreview(previewModal);
+    });
+    
+    // 모달 내 발행 버튼 클릭 시 실제 발행
+    const publishFromModalBtn = document.getElementById('publishFromModalBtn');
+    publishFromModalBtn.addEventListener('click', () => {
+      this.executePublish(previewModal);
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      // 임시 저장 로직
+      const title = this.titleElement.value.trim();
+      let content = this.contentElement.innerHTML;
+      
+      // 유튜브 링크를 iframe으로 변환
+      content = SecurityUtils.convertYouTubeToIframe(content);
+      content = SecurityUtils.sanitizeHtml(content);
+      
+      const draftData = {
+        title: SecurityUtils.escapeHtml(title),
+        content: content,
+        category: document.getElementById('postCategory').value || '',
+        tags: document.getElementById('postTags').value || ''
+      };
+      
+      // localStorage에 저장 (실제로는 서버에 저장)
+      localStorage.setItem('draft_post', JSON.stringify(draftData));
+      alert('임시 저장되었습니다.');
+    });
+
+  },
+
+  setupPasteHandler() {
+    this.contentElement.addEventListener('paste', (e) => {
+      e.preventDefault();
+      
+      const clipboardData = e.clipboardData || window.clipboardData;
+      const pastedText = clipboardData.getData('text/plain') || '';
+      
+      // 유튜브 링크인지 확인
+      const videoId = SecurityUtils.extractYouTubeVideoId(pastedText);
+      
+      if (videoId) {
+        // 유튜브 링크를 iframe으로 변환하여 삽입
+        const iframeHtml = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe>`;
+        document.execCommand('insertHTML', false, iframeHtml);
+      } else {
+        // 일반 텍스트 또는 HTML 붙여넣기
+        const html = clipboardData.getData('text/html');
+        if (html && html.trim()) {
+          // HTML 내에 유튜브 링크가 있는지 확인
+          const processedHtml = SecurityUtils.convertYouTubeToIframe(html);
+          document.execCommand('insertHTML', false, processedHtml);
+        } else if (pastedText) {
+          // 일반 텍스트는 그대로 붙여넣기
+          document.execCommand('insertText', false, pastedText);
+        }
+      }
+    });
+  },
+
+  showPreview(previewModal) {
+    const title = this.titleElement.value.trim() || '(제목 없음)';
+    let content = this.contentElement.innerHTML;
+    
+    // 플레이스홀더 체크
+    if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
+      content = '<p class="text-muted">(내용 없음)</p>';
+    } else {
+      // 유튜브 링크를 iframe으로 변환 (아직 변환되지 않은 경우)
+      content = SecurityUtils.convertYouTubeToIframe(content);
+      content = SecurityUtils.sanitizeHtml(content);
+    }
+    
+    const category = document.getElementById('postCategory').value || '미선택';
+    const tags = document.getElementById('postTags').value 
+      ? document.getElementById('postTags').value.split(',').map(t => SecurityUtils.escapeHtml(t)).join(', ')
+      : '없음';
+    
+    document.getElementById('previewTitle').textContent = SecurityUtils.escapeHtml(title);
+    document.getElementById('previewContent').innerHTML = content;
+    document.getElementById('previewCategory').textContent = SecurityUtils.escapeHtml(category);
+    document.getElementById('previewTags').textContent = tags;
+    
+    previewModal.show();
+  },
+  
+  executePublish(previewModal) {
+    // 제목 검증
+    const title = this.titleElement.value.trim();
+    if (!SecurityUtils.validateInput(title, 200)) {
+      alert('제목을 올바르게 입력해주세요. (최대 200자)');
+      return;
+    }
+    
+    // 본문 검증
+    let content = this.contentElement.innerHTML;
+    if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
+      alert('본문을 입력해주세요.');
+      return;
+    }
+    
+    // 유튜브 링크를 iframe으로 변환 (아직 변환되지 않은 경우)
+    content = SecurityUtils.convertYouTubeToIframe(content);
+    
+    // HTML 정화 (XSS 방어)
+    content = SecurityUtils.sanitizeHtml(content);
+    
+    // 정화된 내용이 비어있는지 확인
+    const textContent = this.contentElement.textContent.trim();
+    if (!textContent || textContent === this.contentElement.dataset.placeholder) {
+      alert('본문을 입력해주세요.');
+      return;
+    }
+    
+    this.contentInput.value = content;
+    
+    // 카테고리 검증
+    const category = document.getElementById('postCategory').value;
+    if (!category) {
+      if (!confirm('카테고리가 선택되지 않았습니다. 계속하시겠습니까?')) {
+        return;
+      }
+    }
+    
+    // 폼 데이터 준비
+    const formData = {
+      title: SecurityUtils.escapeHtml(title),
+      content: content,
+      category: category || '',
+      tags: document.getElementById('postTags').value || ''
+    };
+    
+    // 실제 서버 전송은 여기서 처리
+    console.log('게시글 데이터:', formData);
+    alert('게시글이 발행되었습니다! (실제 구현 시 서버로 전송)');
+    
+    // 모달 닫기
+    previewModal.hide();
+    
+    // 성공 후 처리 (예: 리다이렉트)
+    // window.location.href = '/posts';
+  },
+  
+  setupPreview() {
+    // 이전 미리보기 버튼 관련 코드 제거
+    // 발행 버튼과 모달 발행 버튼에서 처리하도록 변경됨
+  }
+};
+
+// 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  EditorManager.init();
+  
+  // Footer 로드
+  fetch('/footer.html')
+    .then(res => res.text())
+    .then(html => { 
+      const footer = document.getElementById('site-footer');
+      if (footer) {
+        footer.innerHTML = DOMPurify.sanitize(html);
+      }
+    })
+    .catch(err => console.error('Footer 로드 실패:', err));
+  
+  // 임시 저장 데이터 복원
+  const savedDraft = localStorage.getItem('draft_post');
+  if (savedDraft) {
+    try {
+      const draft = JSON.parse(savedDraft);
+      if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
+        EditorManager.titleElement.value = draft.title || '';
+        EditorManager.contentElement.innerHTML = draft.content || '';
+        if (draft.category) {
+          document.getElementById('postCategory').value = draft.category;
+        }
+        if (draft.tags) {
+          const tags = draft.tags.split(',');
+          tags.forEach(tag => {
+            document.getElementById('tagInput').value = tag;
+            document.getElementById('tagInput').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+          });
+        }
+      }
+    } catch (e) {
+      console.error('임시 저장 데이터 복원 실패:', e);
+    }
+  }
+});
+
+// 페이지 이탈 경고
+window.addEventListener('beforeunload', (e) => {
+  const title = EditorManager.titleElement.value.trim();
+  const content = EditorManager.contentElement.textContent.trim();
+  
+  if (title || (content && content !== EditorManager.contentElement.dataset.placeholder)) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
+

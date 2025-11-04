@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net;">
+<title>샌드위치냠냠</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<style>
+body {
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 0;
+}
+
+.main-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 좌측 LNB (Left Navigation Bar) */
+.lnb {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 80px;
+  background-color: #ffffff;
+  border-right: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+  gap: 1.5rem;
+  z-index: 100;
+}
+
+.lnb-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ffe0e6;
+  color: #333;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lnb-button:hover {
+  background-color: #ffd1dc;
+  transform: scale(1.05);
+}
+
+.lnb-button.active {
+  background-color: #ffb3c1;
+}
+
+/* 메인 컨텐츠 영역 */
+.main-content {
+  margin-left: 80px;
+  flex: 1;
+  padding: 2rem;
+}
+
+/* 헤더 영역 */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+/* 게시판 본문 영역 */
+.board-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+/* 상단 바: 카테고리 버튼과 글쓰기 버튼 */
+.board-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.category-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.category-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  border: 1.5px solid #ffb3c1;
+  background-color: transparent;
+  color: #ff6b9d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-btn.active {
+  background-color: #ffe0e6;
+  border-color: #ffb3c1;
+  color: #ff6b9d;
+}
+
+.category-btn:not(.active) {
+  border-color: rgba(255, 179, 193, 0.3);
+  color: rgba(255, 107, 157, 0.5);
+}
+
+.category-btn:hover:not(.active) {
+  border-color: #ffb3c1;
+  color: #ff6b9d;
+  background-color: rgba(255, 224, 230, 0.3);
+}
+
+/* 글쓰기 버튼 */
+.write-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background-color: #eabddf;
+  color: white;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(255, 107, 157, 0.3);
+}
+
+.write-btn:hover {
+  background-color: #c695cc;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4);
+}
+
+/* 갤러리 그리드 */
+.post-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.post-gallery.show {
+  display: grid;
+}
+
+/* 게시글 카드 */
+.post-card {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.post-card:hover {
+  transform: translateY(-4px);
+}
+
+.post-image-wrapper {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.post-title-text {
+  flex: 1;
+  text-align: left;
+}
+
+.post-author {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #9ab7cb;
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* 정보 공유 게시판 소메뉴 */
+.sub-menu {
+  display: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  right: 2rem;
+}
+
+.sub-menu.show {
+  display: block;
+}
+
+.sub-menu-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  margin-bottom: 2rem;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* 리스트형 게시판 상단 간격 추가 */
+.post-list.show {
+  margin-top: 0;
+}
+
+.sub-menu-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sub-menu-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  border: 1.5px solid #ffb3c1;
+  background-color: transparent;
+  color: #ff6b9d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sub-menu-btn.active {
+  background-color: #ffe0e6;
+  border-color: #ffb3c1;
+  color: #ff6b9d;
+}
+
+.sub-menu-btn:not(.active) {
+  border-color: rgba(255, 179, 193, 0.3);
+  color: rgba(255, 107, 157, 0.5);
+}
+
+.sub-menu-btn:hover:not(.active) {
+  border-color: #ffb3c1;
+  color: #ff6b9d;
+  background-color: rgba(255, 224, 230, 0.3);
+}
+
+/* 리스트형 게시판 */
+.post-list {
+  display: none;
+  margin-top: 1rem;
+}
+
+.post-list.show {
+  display: block;
+}
+
+.post-list-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.post-list-item:hover {
+  background-color: #f8f9fa;
+}
+
+.post-list-item:last-child {
+  border-bottom: none;
+}
+
+.post-date {
+  width: 100px;
+  font-size: 0.85rem;
+  color: #6c757d;
+  flex-shrink: 0;
+}
+
+.post-list-title {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #333;
+  margin: 0 1rem;
+  text-align: left;
+}
+
+.post-author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.post-author-profile {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #9ab7cb;
+  flex-shrink: 0;
+}
+
+.post-author-name {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.post-views {
+  width: 80px;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* 페이지네이션 */
+.pagination-container {
+  display: none;
+  margin-top: 2rem;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-container.show {
+  display: flex;
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dee2e6;
+  background-color: white;
+  color: #333;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.pagination-btn:hover:not(.disabled):not(.active) {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.pagination-btn.active {
+  background-color: #eabddf;
+  border-color: #eabddf;
+  color: white;
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-prev,
+.pagination-next {
+  font-weight: bold;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .lnb {
+    width: 60px;
+    padding: 1rem 0;
+  }
+
+  .lnb-button {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+
+  .main-content {
+    margin-left: 60px;
+    padding: 1rem;
+  }
+
+  .board-container {
+    padding: 1.5rem;
+  }
+
+  .post-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .post-list-item {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+
+  .post-date {
+    width: auto;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-list-title {
+    width: 100%;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .post-author-info {
+    width: auto;
+  }
+
+  .post-views {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .sub-menu-buttons {
+    gap: 0.5rem;
+  }
+
+  .sub-menu-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-gallery {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+</style>
+</head>
+<body>
+<div class="main-container">
+  <!-- 좌측 LNB -->
+  <nav class="lnb">
+    <button class="lnb-button active" id="recipeBtn" title="이렇게 만들어요">
+      🥪
+    </button>
+    <button class="lnb-button" id="tipBtn" title="정보 공유해요">
+      💡
+    </button>
+  </nav>
+
+  <!-- 메인 컨텐츠 -->
+  <main class="main-content">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+      <h1 class="page-title" id="pageTitle">이렇게 만들어요</h1>
+    </div>
+
+    <!-- 게시판 본문 영역 -->
+    <div class="board-container">
+      <!-- 상단 바: 카테고리 버튼과 글쓰기 버튼 -->
+      <div class="board-top-bar">
+        <div class="category-buttons" id="categoryButtons">
+          <button class="category-btn active" data-category="picnic">
+            피크닉/홈카페
+          </button>
+          <button class="category-btn" data-category="lunchbox">
+            데일리 도시락
+          </button>
+        </div>
+        <button class="write-btn" id="writeBtn" title="글쓰기">
+          ➕
+        </button>
+      </div>
+
+      <!-- 정보 공유 소메뉴 (동적으로 생성됨) -->
+      <div class="sub-menu" id="subMenu">
+        <div class="sub-menu-top-bar">
+          <div class="sub-menu-buttons" id="subMenuButtons">
+            <!-- 소메뉴 버튼들은 JavaScript로 동적으로 생성됩니다 -->
+          </div>
+          <button class="write-btn" id="writeBtnTip" title="글쓰기">
+            ➕
+          </button>
+        </div>
+      </div>
+
+      <!-- 게시글 갤러리 -->
+      <div class="post-gallery" id="postGallery">
+        <!-- 게시글 카드들은 JavaScript로 동적으로 생성됩니다 -->
+      </div>
+
+      <!-- 게시글 리스트 -->
+      <div class="post-list" id="postList">
+        <!-- 게시글 리스트 아이템들은 JavaScript로 동적으로 생성됩니다 -->
+      </div>
+
+      <!-- 페이지네이션 (정보 공유) -->
+      <div class="pagination-container" id="paginationContainer">
+        <button class="pagination-btn pagination-prev disabled" id="paginationPrev">&lt;</button>
+        <button class="pagination-btn active">1</button>
+        <button class="pagination-btn">2</button>
+        <button class="pagination-btn">3</button>
+        <button class="pagination-btn">4</button>
+        <button class="pagination-btn">5</button>
+        <button class="pagination-btn pagination-next" id="paginationNext">&gt;</button>
+      </div>
+
+      <!-- 페이지네이션 (레시피) -->
+      <div class="pagination-container" id="paginationContainerRecipe">
+        <button class="pagination-btn pagination-prev disabled" id="paginationPrevRecipe">&lt;</button>
+        <button class="pagination-btn active">1</button>
+        <button class="pagination-btn">2</button>
+        <button class="pagination-btn">3</button>
+        <button class="pagination-btn">4</button>
+        <button class="pagination-btn">5</button>
+        <button class="pagination-btn pagination-next" id="paginationNextRecipe">&gt;</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="site-footer" class="mt-5"></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script>
+// 페이지 제목 업데이트 함수
+function updatePageTitle(buttonTitle) {
+  const pageTitle = document.getElementById('pageTitle');
+  if (pageTitle) {
+    pageTitle.textContent = buttonTitle;
+  }
+}
+
+// 현재 보드 타입 관리
+let currentBoardType = 'recipe'; // 'recipe' or 'tip'
+let currentPage = 1;
+let currentPageRecipe = 1;
+let totalPages = 5;
+let totalPagesRecipe = 5;
+
+// 소메뉴 데이터 구조 (DB에서 불러올 데이터 형식)
+const subMenuConfig = {
+  'tip': [
+    { id: 'sauce', label: '소스 배합', isDefault: true },
+    { id: 'tool', label: '조리 도구', isDefault: false },
+    { id: 'sale', label: '할인 소식', isDefault: false },
+    { id: 'etc', label: '기타', isDefault: false }
+  ]
+  // 다른 페이지 ID에 대한 소메뉴도 여기에 추가 가능
+  // 'recipe': [...],
+  // 'otherPage': [...]
+};
+
+// 소메뉴 생성 함수 (모듈화)
+function renderSubMenu(pageId) {
+  const subMenuButtons = document.getElementById('subMenuButtons');
+  if (!subMenuButtons) return;
+
+  // 페이지 ID에 맞는 소메뉴 데이터 가져오기
+  const menuItems = subMenuConfig[pageId] || subMenuConfig['tip']; // 기본값: tip
+  
+  // 기존 버튼 제거
+  subMenuButtons.innerHTML = '';
+
+  // 소메뉴 버튼 동적 생성
+  menuItems.forEach((item, index) => {
+    const button = document.createElement('button');
+    button.className = `sub-menu-btn ${item.isDefault ? 'active' : ''}`;
+    button.setAttribute('data-subcategory', item.id);
+    button.textContent = item.label;
+    
+    // 클릭 이벤트 추가
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.sub-menu-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const subcategory = this.dataset.subcategory;
+      filterPostsBySubCategory(subcategory || null);
+    });
+    
+    subMenuButtons.appendChild(button);
+  });
+}
+
+// 서버에서 소메뉴 데이터를 불러오는 함수 (향후 DB 연동 시 사용)
+async function loadSubMenuFromServer(pageId) {
+  try {
+    // 실제 구현 시 서버 API 호출
+    // const response = await fetch(`/api/submenu/${pageId}`);
+    // const menuItems = await response.json();
+    // return menuItems;
+    
+    // 현재는 로컬 데이터 사용
+    return subMenuConfig[pageId] || subMenuConfig['tip'];
+  } catch (error) {
+    console.error('소메뉴 로드 실패:', error);
+    return subMenuConfig['tip']; // 기본값 반환
+  }
+}
+
+// 게시판 타입에 따라 UI 전환
+function switchBoardType(type) {
+  currentBoardType = type;
+  const postGallery = document.getElementById('postGallery');
+  const postList = document.getElementById('postList');
+  const categoryButtons = document.getElementById('categoryButtons');
+  const subMenu = document.getElementById('subMenu');
+  const paginationContainer = document.getElementById('paginationContainer');
+  const paginationContainerRecipe = document.getElementById('paginationContainerRecipe');
+  const writeBtn = document.getElementById('writeBtn');
+  const writeBtnTip = document.getElementById('writeBtnTip');
+
+  if (type === 'recipe') {
+    // 레시피 게시판: 갤러리형
+    postGallery.classList.add('show');
+    postGallery.style.display = 'grid';
+    postList.classList.remove('show');
+    postList.style.display = 'none';
+    categoryButtons.style.display = 'flex';
+    subMenu.classList.remove('show');
+    paginationContainer.classList.remove('show');
+    paginationContainerRecipe.classList.add('show');
+    writeBtn.style.display = 'flex';
+    writeBtnTip.style.display = 'none';
+  } else {
+    // 정보 공유 게시판: 리스트형
+    postGallery.classList.remove('show');
+    postGallery.style.display = 'none';
+    postList.classList.add('show');
+    postList.style.display = 'block';
+    categoryButtons.style.display = 'none';
+    subMenu.classList.add('show');
+    paginationContainer.classList.add('show');
+    paginationContainerRecipe.classList.remove('show');
+    writeBtn.style.display = 'none';
+    writeBtnTip.style.display = 'flex';
+    
+    // 소메뉴 렌더링 (DB에서 불러올 경우 loadSubMenuFromServer 사용)
+    renderSubMenu('tip');
+  }
+}
+
+// LNB 버튼 클릭 처리
+document.getElementById('recipeBtn').addEventListener('click', function() {
+  document.getElementById('recipeBtn').classList.add('active');
+  document.getElementById('tipBtn').classList.remove('active');
+  // 페이지 제목 업데이트
+  updatePageTitle(this.title);
+  // 게시판 타입 전환
+  switchBoardType('recipe');
+  // 레시피 게시글 로드
+  loadPosts('recipe');
+});
+
+document.getElementById('tipBtn').addEventListener('click', function() {
+  document.getElementById('tipBtn').classList.add('active');
+  document.getElementById('recipeBtn').classList.remove('active');
+  // 페이지 제목 업데이트
+  updatePageTitle(this.title);
+  // 게시판 타입 전환
+  switchBoardType('tip');
+  // 정보 공유 게시글 로드
+  loadPosts('tip');
+});
+
+// 카테고리 버튼 클릭 처리
+document.querySelectorAll('.category-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const category = this.dataset.category;
+    // 여기서 선택된 카테고리의 게시글을 필터링할 수 있습니다
+    filterPostsByCategory(category);
+  });
+});
+
+// 글쓰기 버튼 클릭 처리
+document.getElementById('writeBtn').addEventListener('click', function() {
+  window.location.href = '/post-editor.html';
+});
+
+document.getElementById('writeBtnTip').addEventListener('click', function() {
+  window.location.href = '/post-editor.html';
+});
+
+// 레시피 게시글 로드 및 렌더링
+async function loadRecipes(category = null, page = 1) {
+  try {
+    const params = new URLSearchParams({ page, limit: 20 });
+    if (category) {
+      params.append('category', category);
+    }
+    
+    const response = await fetch(`/api/recipes?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderRecipes(result.data);
+      totalPagesRecipe = result.pagination.totalPages;
+      currentPageRecipe = result.pagination.page;
+      updatePaginationRecipe();
+    } else {
+      console.error('레시피 로드 실패:', result.message);
+    }
+  } catch (error) {
+    console.error('레시피 로드 오류:', error);
+  }
+}
+
+// 레시피 게시글 렌더링 (갤러리형)
+function renderRecipes(recipes) {
+  const postGallery = document.getElementById('postGallery');
+  postGallery.innerHTML = '';
+  
+  if (recipes.length === 0) {
+    postGallery.innerHTML = '<p style="text-align: center; padding: 2rem; color: #6c757d;">게시글이 없습니다.</p>';
+    return;
+  }
+  
+  recipes.forEach(recipe => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.onclick = () => {
+      // 상세 페이지로 이동 (추후 구현 가능)
+      console.log('레시피 상세:', recipe.RECIPE_ID);
+    };
+    
+    const defaultImage = 'https://via.placeholder.com/300x375?text=No+Image';
+    const imageUrl = recipe.IMAGE_URL || defaultImage;
+    
+    card.innerHTML = `
+      <div class="post-image-wrapper">
+        <img src="${imageUrl}" alt="${recipe.TITLE}" class="post-image" onerror="this.src='${defaultImage}'">
+      </div>
+      <div class="post-title">
+        <span class="post-title-text">${recipe.TITLE}</span>
+        <span class="post-author"></span>
+      </div>
+    `;
+    
+    postGallery.appendChild(card);
+  });
+}
+
+// 정보 공유 게시글 로드 및 렌더링
+async function loadTips(subcategory = null, page = 1) {
+  try {
+    const params = new URLSearchParams({ page, limit: 10 });
+    if (subcategory) {
+      params.append('subcategory', subcategory);
+    }
+    
+    const response = await fetch(`/api/tips?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderTips(result.data);
+      totalPages = result.pagination.totalPages;
+      currentPage = result.pagination.page;
+      updatePagination();
+    } else {
+      console.error('정보 공유 로드 실패:', result.message);
+    }
+  } catch (error) {
+    console.error('정보 공유 로드 오류:', error);
+  }
+}
+
+// 정보 공유 게시글 렌더링 (리스트형)
+function renderTips(tips) {
+  const postList = document.getElementById('postList');
+  postList.innerHTML = '';
+  
+  if (tips.length === 0) {
+    postList.innerHTML = '<p style="text-align: center; padding: 2rem; color: #6c757d;">게시글이 없습니다.</p>';
+    return;
+  }
+  
+  tips.forEach(tip => {
+    const listItem = document.createElement('div');
+    listItem.className = 'post-list-item';
+    listItem.onclick = () => {
+      // 상세 페이지로 이동 (추후 구현 가능)
+      console.log('정보 공유 상세:', tip.TIP_ID);
+    };
+    
+    const formattedDate = tip.CREATED_AT_FORMATTED || 
+      new Date(tip.CREATED_AT).toLocaleDateString('ko-KR', {
+        year: '2-digit',
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/\. /g, '.').replace(/\.$/, '');
+    
+    const formattedViews = tip.VIEWS ? tip.VIEWS.toLocaleString() : '0';
+    
+    listItem.innerHTML = `
+      <div class="post-date">${formattedDate}</div>
+      <div class="post-list-title">${tip.TITLE}</div>
+      <div class="post-author-info">
+        <div class="post-author-profile"></div>
+        <span class="post-author-name">${tip.AUTHOR_NAME || '익명'}</span>
+      </div>
+      <div class="post-views">${formattedViews}</div>
+    `;
+    
+    postList.appendChild(listItem);
+  });
+}
+
+// 게시글 로드 함수
+function loadPosts(type) {
+  if (type === 'recipe') {
+    const activeCategory = document.querySelector('.category-btn.active')?.dataset.category;
+    loadRecipes(activeCategory || null, currentPageRecipe);
+  } else if (type === 'tip') {
+    const activeSubcategory = document.querySelector('.sub-menu-btn.active')?.dataset.subcategory;
+    loadTips(activeSubcategory || null, currentPage);
+  }
+}
+
+// 카테고리별 게시글 필터링
+function filterPostsByCategory(category) {
+  if (currentBoardType === 'recipe') {
+    currentPageRecipe = 1;
+    loadRecipes(category, 1);
+  }
+}
+
+// 서브카테고리별 게시글 필터링
+function filterPostsBySubCategory(subcategory) {
+  if (currentBoardType === 'tip') {
+    currentPage = 1;
+    loadTips(subcategory, 1);
+  }
+}
+
+// 페이지네이션 처리
+function initPagination() {
+  // 정보 공유 게시판 페이지네이션
+  const paginationPrev = document.getElementById('paginationPrev');
+  const paginationNext = document.getElementById('paginationNext');
+  const paginationContainer = document.getElementById('paginationContainer');
+  const paginationBtns = paginationContainer.querySelectorAll('.pagination-btn:not(.pagination-prev):not(.pagination-next)');
+
+  // 이전/다음 버튼 클릭
+  paginationPrev.addEventListener('click', function() {
+    if (!this.classList.contains('disabled') && currentPage > 1) {
+      currentPage--;
+      loadTips(document.querySelector('.sub-menu-btn.active')?.dataset.subcategory || null, currentPage);
+      updatePagination();
+    }
+  });
+
+  paginationNext.addEventListener('click', function() {
+    if (!this.classList.contains('disabled') && currentPage < totalPages) {
+      currentPage++;
+      loadTips(document.querySelector('.sub-menu-btn.active')?.dataset.subcategory || null, currentPage);
+      updatePagination();
+    }
+  });
+
+  // 페이지 번호 버튼 클릭
+  paginationBtns.forEach((btn, index) => {
+    btn.addEventListener('click', function() {
+      if (!this.classList.contains('disabled')) {
+        currentPage = parseInt(this.textContent);
+        loadTips(document.querySelector('.sub-menu-btn.active')?.dataset.subcategory || null, currentPage);
+        updatePagination();
+      }
+    });
+  });
+
+  // 레시피 게시판 페이지네이션
+  const paginationPrevRecipe = document.getElementById('paginationPrevRecipe');
+  const paginationNextRecipe = document.getElementById('paginationNextRecipe');
+  const paginationContainerRecipe = document.getElementById('paginationContainerRecipe');
+  const paginationBtnsRecipe = paginationContainerRecipe.querySelectorAll('.pagination-btn:not(.pagination-prev):not(.pagination-next)');
+
+  // 이전/다음 버튼 클릭
+  paginationPrevRecipe.addEventListener('click', function() {
+    if (!this.classList.contains('disabled') && currentPageRecipe > 1) {
+      currentPageRecipe--;
+      loadRecipes(document.querySelector('.category-btn.active')?.dataset.category || null, currentPageRecipe);
+      updatePaginationRecipe();
+    }
+  });
+
+  paginationNextRecipe.addEventListener('click', function() {
+    if (!this.classList.contains('disabled') && currentPageRecipe < totalPagesRecipe) {
+      currentPageRecipe++;
+      loadRecipes(document.querySelector('.category-btn.active')?.dataset.category || null, currentPageRecipe);
+      updatePaginationRecipe();
+    }
+  });
+
+  // 페이지 번호 버튼 클릭
+  paginationBtnsRecipe.forEach((btn, index) => {
+    btn.addEventListener('click', function() {
+      if (!this.classList.contains('disabled')) {
+        currentPageRecipe = parseInt(this.textContent);
+        loadRecipes(document.querySelector('.category-btn.active')?.dataset.category || null, currentPageRecipe);
+        updatePaginationRecipe();
+      }
+    });
+  });
+}
+
+// 페이지네이션 업데이트 (정보 공유)
+function updatePagination() {
+  const paginationPrev = document.getElementById('paginationPrev');
+  const paginationNext = document.getElementById('paginationNext');
+  const paginationContainer = document.getElementById('paginationContainer');
+  const paginationBtns = paginationContainer.querySelectorAll('.pagination-btn:not(.pagination-prev):not(.pagination-next)');
+
+  // 이전/다음 버튼 상태 업데이트
+  if (currentPage <= 1) {
+    paginationPrev.classList.add('disabled');
+  } else {
+    paginationPrev.classList.remove('disabled');
+  }
+
+  if (currentPage >= totalPages) {
+    paginationNext.classList.add('disabled');
+  } else {
+    paginationNext.classList.remove('disabled');
+  }
+
+  // 페이지 번호 버튼 업데이트
+  let startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  
+  paginationBtns.forEach((btn, index) => {
+    const pageNum = startPage + index;
+    if (pageNum <= totalPages) {
+      btn.textContent = pageNum;
+      btn.style.display = 'flex';
+      if (pageNum === currentPage) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+}
+
+// 페이지네이션 업데이트 (레시피)
+function updatePaginationRecipe() {
+  const paginationPrevRecipe = document.getElementById('paginationPrevRecipe');
+  const paginationNextRecipe = document.getElementById('paginationNextRecipe');
+  const paginationContainerRecipe = document.getElementById('paginationContainerRecipe');
+  const paginationBtnsRecipe = paginationContainerRecipe.querySelectorAll('.pagination-btn:not(.pagination-prev):not(.pagination-next)');
+
+  // 이전/다음 버튼 상태 업데이트
+  if (currentPageRecipe <= 1) {
+    paginationPrevRecipe.classList.add('disabled');
+  } else {
+    paginationPrevRecipe.classList.remove('disabled');
+  }
+
+  if (currentPageRecipe >= totalPagesRecipe) {
+    paginationNextRecipe.classList.add('disabled');
+  } else {
+    paginationNextRecipe.classList.remove('disabled');
+  }
+
+  // 페이지 번호 버튼 업데이트
+  let startPage = Math.max(1, Math.min(currentPageRecipe - 2, totalPagesRecipe - 4));
+  
+  paginationBtnsRecipe.forEach((btn, index) => {
+    const pageNum = startPage + index;
+    if (pageNum <= totalPagesRecipe) {
+      btn.textContent = pageNum;
+      btn.style.display = 'flex';
+      if (pageNum === currentPageRecipe) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+}
+
+// 초기 페이지 제목 설정
+document.addEventListener('DOMContentLoaded', function() {
+  const activeBtn = document.querySelector('.lnb-button.active');
+  if (activeBtn) {
+    updatePageTitle(activeBtn.title);
+    if (activeBtn.id === 'recipeBtn') {
+      switchBoardType('recipe');
+      // 초기 레시피 데이터 로드
+      loadPosts('recipe');
+    } else {
+      switchBoardType('tip');
+      // 초기 정보 공유 데이터 로드
+      loadPosts('tip');
+    }
+  }
+  
+  // 페이지네이션 초기화
+  initPagination();
+  updatePagination();
+  updatePaginationRecipe();
+  
+  // 초기 소메뉴 렌더링 (현재 활성화된 메뉴가 정보 공유인 경우)
+  if (activeBtn && activeBtn.id === 'tipBtn') {
+    renderSubMenu('tip');
+  }
+});
+
+// Footer 로드
+fetch('/footer.html')
+  .then(res => res.text())
+  .then(html => {
+    const footer = document.getElementById('site-footer');
+    if (footer) {
+      footer.innerHTML = html;
+    }
+  })
+  .catch(err => console.error('Footer 로드 실패:', err));
+</script>
+</body>
+</html>
