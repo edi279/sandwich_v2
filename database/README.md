@@ -12,43 +12,61 @@ docker-compose up -d
 
 이 명령어로 MySQL과 웹 애플리케이션이 함께 실행됩니다. MySQL 컨테이너가 시작되면 자동으로 데이터베이스와 테이블이 생성됩니다.
 
-### 2. 샘플 데이터 추가 (선택사항)
+### 2. 환경 변수 설정 (중요: 보안을 위해 필수)
+`.env` 파일을 생성하고 MySQL 비밀번호를 설정하세요:
+```bash
+cp .env.example .env
+# .env 파일을 편집하여 안전한 비밀번호로 변경
+```
+
+### 3. 샘플 데이터 추가 (선택사항)
 샘플 데이터를 추가하려면:
 ```bash
-# 샘플 데이터 파일 실행
-docker exec -i sandwich_mysql mysql -u root -prootpassword sandwich_db < database/sample-data.sql
+# 환경 변수에서 비밀번호 가져오기 (또는 직접 지정)
+ROOT_PASSWORD=$(grep MYSQL_ROOT_PASSWORD .env | cut -d '=' -f2)
+docker exec -i sandwich_mysql mysql -u root -p${ROOT_PASSWORD} sandwich_db < database/sample-data.sql
 ```
 
 또는 MySQL 컨테이너 내부에서:
 ```bash
-docker exec -it sandwich_mysql mysql -u root -prootpassword sandwich_db
-```
-그 다음 MySQL 프롬프트에서:
-```sql
+docker exec -it sandwich_mysql mysql -u root -p
+# 비밀번호 입력 후
+USE sandwich_db;
 SOURCE /docker-entrypoint-initdb.d/sample-data.sql;
 ```
 
 또는 전체 스키마 + 샘플 데이터를 한 번에 추가하려면:
 ```bash
-docker exec -i sandwich_mysql mysql -u root -prootpassword < database/schema.sql
+ROOT_PASSWORD=$(grep MYSQL_ROOT_PASSWORD .env | cut -d '=' -f2)
+docker exec -i sandwich_mysql mysql -u root -p${ROOT_PASSWORD} < database/schema.sql
 ```
 
-### 3. 데이터베이스 상태 확인
+### 4. 데이터베이스 상태 확인
 ```bash
 # MySQL 컨테이너에 접속하여 확인
-docker exec -it sandwich_mysql mysql -u root -prootpassword sandwich_db -e "SHOW TABLES;"
+ROOT_PASSWORD=$(grep MYSQL_ROOT_PASSWORD .env | cut -d '=' -f2)
+docker exec -it sandwich_mysql mysql -u root -p${ROOT_PASSWORD} sandwich_db -e "SHOW TABLES;"
 ```
 
 **참고**: 호스트에서 MySQL 클라이언트로 직접 접속하려면:
 ```bash
-mysql -h 127.0.0.1 -P 3307 -u sandwich_user -psandwich_password sandwich_db
+DB_PASSWORD=$(grep MYSQL_PASSWORD .env | cut -d '=' -f2)
+mysql -h 127.0.0.1 -P 3307 -u sandwich_user -p${DB_PASSWORD} sandwich_db
 ```
 
-### Docker 환경 변수 (이미 설정됨)
-- `DB_HOST`: mysql (Docker 서비스 이름)
-- `DB_USER`: sandwich_user
-- `DB_PASSWORD`: sandwich_password
-- `DB_NAME`: sandwich_db
+### Docker 환경 변수
+`.env` 파일에서 다음 변수들을 설정할 수 있습니다:
+- `MYSQL_ROOT_PASSWORD`: MySQL root 비밀번호
+- `MYSQL_PASSWORD`: MySQL 사용자 비밀번호
+- `DB_HOST`: mysql (Docker 서비스 이름, 기본값)
+- `DB_USER`: sandwich_user (기본값)
+- `DB_PASSWORD`: MYSQL_PASSWORD와 동일 (기본값)
+- `DB_NAME`: sandwich_db (기본값)
+
+**보안 주의사항**: 
+- `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 커밋되지 않습니다.
+- 실제 운영 환경에서는 반드시 강력한 비밀번호를 사용하세요.
+- 기본 비밀번호(`rootpassword`, `sandwich_password`)는 개발 환경에서만 사용하세요.
 
 **참고**: 호스트에서 MySQL에 접근하려면 포트 3307을 사용하세요 (호스트의 3306 포트가 이미 사용 중인 경우).
 
@@ -169,7 +187,9 @@ docker-compose up -d
 
 #### 샘플 데이터 추가
 ```bash
-docker exec -i sandwich_mysql mysql -u root -prootpassword sandwich_db < database/sample-data.sql
+# 환경 변수에서 비밀번호 가져오기
+ROOT_PASSWORD=$(grep MYSQL_ROOT_PASSWORD .env | cut -d '=' -f2)
+docker exec -i sandwich_mysql mysql -u root -p${ROOT_PASSWORD} sandwich_db < database/sample-data.sql
 ```
 
 ### 로컬 환경
