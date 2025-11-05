@@ -5,7 +5,7 @@ const { pool } = require('../config/database');
 // 정보 공유 목록 조회 (리스트형)
 router.get('/', async (req, res) => {
   try {
-    const { subcategory, page = 1, limit = 10 } = req.query;
+    const { subcategory, category, page = 1, limit = 10 } = req.query;
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 10;
     const offsetNum = (pageNum - 1) * limitNum;
@@ -21,10 +21,12 @@ router.get('/', async (req, res) => {
     let query = 'SELECT * FROM TIP_TB';
     const params = [];
     
-    // 서브카테고리 필터링
-    if (subcategory && ['sauce', 'tool', 'sale', 'etc'].includes(subcategory)) {
-      query += ' WHERE SUBCATEGORY = ?';
-      params.push(subcategory);
+    // 서브카테고리 필터링 (subcategory 또는 category 파라미터 지원)
+    // DB에서는 CATEGORY 컬럼을 사용
+    const filterCategory = category || subcategory;
+    if (filterCategory && ['sauce', 'tool', 'sale', 'etc'].includes(filterCategory)) {
+      query += ' WHERE CATEGORY = ?';
+      params.push(filterCategory);
     }
     
     // LIMIT와 OFFSET은 직접 값으로 삽입 (MySQL 8.0 호환성)
@@ -35,9 +37,9 @@ router.get('/', async (req, res) => {
     // 전체 개수 조회
     let countQuery = 'SELECT COUNT(*) as total FROM TIP_TB';
     const countParams = [];
-    if (subcategory && ['sauce', 'tool', 'sale', 'etc'].includes(subcategory)) {
-      countQuery += ' WHERE SUBCATEGORY = ?';
-      countParams.push(subcategory);
+    if (filterCategory && ['sauce', 'tool', 'sale', 'etc'].includes(filterCategory)) {
+      countQuery += ' WHERE CATEGORY = ?';
+      countParams.push(filterCategory);
     }
     const [countRows] = await pool.execute(countQuery, countParams);
     const total = countRows[0].total;

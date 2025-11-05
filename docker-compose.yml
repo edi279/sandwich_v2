@@ -33,6 +33,12 @@ services:
       - DB_USER=sandwich_user
       - DB_PASSWORD=${MYSQL_PASSWORD:-sandwich_password}
       - DB_NAME=sandwich_db
+    volumes:
+      # 개발 환경: frontend 폴더를 마운트하여 실시간 변경 반영
+      - ./frontend:/app/frontend
+      - ./server.js:/app/server.js
+      - ./routes:/app/routes
+      - ./config:/app/config
     depends_on:
       mysql:
         condition: service_healthy

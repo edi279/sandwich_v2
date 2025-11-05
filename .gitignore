@@ -39,3 +39,7 @@ build/
 # Database (if you have local database files)
 *.sqlite
 *.db
+
+# Security sensitive files
+change_mysql_password.sh
+AWS_SECURITY_GROUP_SETUP.md
