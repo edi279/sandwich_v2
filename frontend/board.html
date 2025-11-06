@@ -732,8 +732,8 @@ function renderRecipes(recipes) {
     const card = document.createElement('div');
     card.className = 'post-card';
     card.onclick = () => {
-      // 상세 페이지로 이동
-      window.location.href = `/post-detail.html?type=recipe&id=${recipe.RECIPE_ID}`;
+      // 상세 페이지로 이동 (MENU_ID 1 = 레시피 게시판)
+      window.location.href = `/post-detail.html?type=1&id=${recipe.RECIPE_ID}`;
     };
     
     // 기본 이미지: data URI를 사용하여 네트워크 오류 방지
@@ -809,8 +809,8 @@ function renderTips(tips) {
     const listItem = document.createElement('div');
     listItem.className = 'post-list-item';
     listItem.onclick = () => {
-      // 상세 페이지로 이동
-      window.location.href = `/post-detail.html?type=tip&id=${tip.TIP_ID}`;
+      // 상세 페이지로 이동 (MENU_ID 2 = 정보 공유 게시판)
+      window.location.href = `/post-detail.html?type=2&id=${tip.TIP_ID}`;
     };
     
     const formattedDate = tip.CREATED_AT_FORMATTED || 
@@ -1018,6 +1018,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const boardParam = urlParams.get('board');
   const categoryParam = urlParams.get('category');
+  const pageParam = urlParams.get('page'); // 페이지 파라미터 추가
   
   let boardType = 'recipe'; // 기본값
   
@@ -1028,11 +1029,25 @@ document.addEventListener('DOMContentLoaded', async function() {
       document.getElementById('recipeBtn').classList.add('active');
       document.getElementById('tipBtn').classList.remove('active');
       updatePageTitle('이렇게 만들어요');
+      // 페이지 파라미터가 있으면 설정
+      if (pageParam) {
+        const pageNum = parseInt(pageParam);
+        if (!isNaN(pageNum) && pageNum > 0) {
+          currentPageRecipe = pageNum;
+        }
+      }
     } else if (boardParam === '2') {
       boardType = 'tip';
       document.getElementById('tipBtn').classList.add('active');
       document.getElementById('recipeBtn').classList.remove('active');
       updatePageTitle('정보 공유해요');
+      // 페이지 파라미터가 있으면 설정
+      if (pageParam) {
+        const pageNum = parseInt(pageParam);
+        if (!isNaN(pageNum) && pageNum > 0) {
+          currentPage = pageNum;
+        }
+      }
     }
   } else {
     // 파라미터가 없으면 현재 활성화된 버튼으로 결정
@@ -1058,11 +1073,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         categoryButtons.forEach(b => b.classList.remove('active'));
         // 해당 버튼 활성화
         btn.classList.add('active');
-        // 게시글 로드
+        // 게시글 로드 (페이지 파라미터도 함께 전달)
         if (boardType === 'recipe') {
-          loadRecipes(categoryParam, 1);
+          loadRecipes(categoryParam, currentPageRecipe);
         } else {
-          loadTips(categoryParam, 1);
+          loadTips(categoryParam, currentPage);
         }
       }
     });

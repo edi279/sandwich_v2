@@ -119,11 +119,26 @@ body {
 .post-meta {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid #e9ecef;
   margin-bottom: 2rem;
   flex-wrap: wrap;
+}
+
+.post-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.post-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
 }
 
 .author-info {
@@ -274,6 +289,11 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
+  }
+  
+  .post-meta-right {
+    align-self: flex-end;
+    margin-left: 0;
   }
 
   .meta-divider {
@@ -607,7 +627,7 @@ body {
   <!-- 메인 컨텐츠 -->
   <main class="main-content">
     <!-- 뒤로가기 버튼 -->
-    <button class="back-button" onclick="window.history.back()">
+    <button class="back-button" id="backToListBtn">
       <span>←</span>
       <span>목록으로</span>
     </button>
@@ -625,19 +645,30 @@ body {
         </div>
         <h1 class="post-title" id="postTitle"></h1>
         <div class="post-meta">
-          <div class="author-info">
-            <div class="author-profile" id="authorProfile"></div>
-            <span class="author-name" id="authorName"></span>
+          <div class="post-meta-left">
+            <div class="author-info">
+              <div class="author-profile" id="authorProfile"></div>
+              <span class="author-name" id="authorName"></span>
+            </div>
+            <span class="meta-divider">|</span>
+            <div class="meta-item">
+              <span class="meta-item-icon">📅</span>
+              <span id="postDate"></span>
+            </div>
+            <span class="meta-divider">|</span>
+            <div class="meta-item">
+              <span class="meta-item-icon">👁️</span>
+              <span id="postViews"></span>
+            </div>
           </div>
-          <span class="meta-divider">|</span>
-          <div class="meta-item">
-            <span class="meta-item-icon">📅</span>
-            <span id="postDate"></span>
-          </div>
-          <span class="meta-divider">|</span>
-          <div class="meta-item">
-            <span class="meta-item-icon">👁️</span>
-            <span id="postViews"></span>
+          <!-- 수정/삭제 버튼 -->
+          <div class="post-meta-right">
+            <button class="btn btn-outline-primary" id="editPostBtn" style="padding: 0.4rem 1rem; font-size: 0.9rem;">
+              수정
+            </button>
+            <button class="btn btn-outline-danger" id="deletePostBtn" style="padding: 0.4rem 1rem; font-size: 0.9rem;">
+              삭제
+            </button>
           </div>
         </div>
         <div class="post-content" id="postContentBody"></div>
@@ -693,10 +724,17 @@ body {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script>
-// URL 파라미터에서 type과 id 가져오기
+// URL 파라미터에서 type(MENU_ID)과 id 가져오기
 const urlParams = new URLSearchParams(window.location.search);
-const postType = urlParams.get('type'); // 'recipe' or 'tip'
+const postType = urlParams.get('type'); // '1' (레시피) or '2' (정보 공유) - MENU_TB의 MENU_ID
 const postId = urlParams.get('id');
+
+// 게시글 정보 저장 (목록으로 이동 시 사용)
+let currentPostData = {
+  boardId: postType, // MENU_ID
+  categoryId: null, // 카테고리는 게시글 로드 후 설정
+  createdAt: null // 페이지 계산용
+};
 
 // DOM 요소
 const loading = document.getElementById('loading');
@@ -712,7 +750,8 @@ async function loadPost() {
   }
 
   try {
-    const apiUrl = postType === 'recipe' 
+    // MENU_ID 1 = 레시피 게시판, MENU_ID 2 = 정보 공유 게시판
+    const apiUrl = postType === '1' 
       ? `/api/recipes/${postId}`
       : `/api/tips/${postId}`;
     
@@ -744,6 +783,10 @@ async function loadPost() {
 
 // 게시글 표시
 function displayPost(data) {
+  // 게시글 정보 저장 (목록으로 이동 시 사용)
+  currentPostData.categoryId = data.CATEGORY || null;
+  currentPostData.createdAt = data.CREATED_AT || null;
+  
   // 카테고리
   const categoryEl = document.getElementById('postCategory');
   if (data.CATEGORY_NAME) {
@@ -753,8 +796,8 @@ function displayPost(data) {
     categoryEl.style.display = 'none';
   }
 
-  // 이미지 (레시피만)
-  if (postType === 'recipe' && data.IMAGE_URL) {
+  // 이미지 (레시피만 - MENU_ID 1)
+  if (postType === '1' && data.IMAGE_URL) {
     const imageSection = document.getElementById('postImageSection');
     const imageEl = document.getElementById('postImage');
     imageEl.src = data.IMAGE_URL;
@@ -1207,6 +1250,133 @@ function updateCharCount() {
   charCount.textContent = textarea.value.length;
 }
 
+// 목록으로 이동 (해당 게시판과 카테고리로 이동)
+async function goBackToList() {
+  if (!currentPostData.boardId) {
+    // 게시판 정보가 없으면 이전 페이지로
+    window.history.back();
+    return;
+  }
+  
+  try {
+    // 해당 게시글이 몇 페이지에 있는지 계산
+    let targetPage = 1;
+    
+    if (currentPostData.categoryId && postId) {
+      // 해당 카테고리에서 게시글의 위치 계산
+      const limit = currentPostData.boardId === '1' ? 20 : 10; // 레시피: 20개/페이지, 정보 공유: 10개/페이지
+      const apiUrl = currentPostData.boardId === '1' 
+        ? `/api/recipes?category=${currentPostData.categoryId}&limit=${limit}`
+        : `/api/tips?category=${currentPostData.categoryId}&limit=${limit}`;
+      
+      try {
+        // 첫 페이지부터 순회하면서 해당 게시글 찾기
+        const firstPageResponse = await fetch(`${apiUrl}&page=1`);
+        const firstPageResult = await firstPageResponse.json();
+        
+        if (firstPageResult.success && firstPageResult.pagination) {
+          const totalPages = firstPageResult.pagination.totalPages;
+          const postIdField = currentPostData.boardId === '1' ? 'RECIPE_ID' : 'TIP_ID';
+          
+          // 각 페이지를 확인하여 해당 게시글 찾기
+          for (let page = 1; page <= totalPages && page <= 10; page++) { // 최대 10페이지까지만 확인
+            const pageResponse = await fetch(`${apiUrl}&page=${page}`);
+            const pageResult = await pageResponse.json();
+            
+            if (pageResult.success && pageResult.data) {
+              const foundIndex = pageResult.data.findIndex(post => post[postIdField] == postId);
+              
+              if (foundIndex !== -1) {
+                targetPage = page;
+                break;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('페이지 계산 실패, 첫 페이지로 이동:', error);
+        targetPage = 1;
+      }
+    }
+    
+    // 게시판 목록으로 이동
+    const params = new URLSearchParams();
+    params.set('board', currentPostData.boardId);
+    if (currentPostData.categoryId) {
+      params.set('category', currentPostData.categoryId);
+    }
+    if (targetPage > 1) {
+      params.set('page', targetPage);
+    }
+    
+    window.location.href = `/board.html?${params.toString()}`;
+  } catch (error) {
+    console.error('목록으로 이동 오류:', error);
+    // 오류 발생 시 기본 게시판으로 이동
+    const params = new URLSearchParams();
+    params.set('board', currentPostData.boardId);
+    if (currentPostData.categoryId) {
+      params.set('category', currentPostData.categoryId);
+    }
+    window.location.href = `/board.html?${params.toString()}`;
+  }
+}
+
+// 게시글 수정
+function editPost() {
+  if (!postType || !postId) {
+    alert('게시글 정보를 찾을 수 없습니다.');
+    return;
+  }
+  
+  // post-editor.html로 이동하면서 postId와 postType 전달
+  window.location.href = `/post-editor.html?postId=${postId}&postType=${postType}`;
+}
+
+// 게시글 삭제
+async function deletePost() {
+  if (!postType || !postId) {
+    alert('게시글 정보를 찾을 수 없습니다.');
+    return;
+  }
+  
+  if (!confirm('정말로 이 게시글을 삭제하시겠습니까?\n삭제된 게시글은 목록에서 표시되지 않습니다.')) {
+    return;
+  }
+  
+  try {
+    // MENU_ID 1 = 레시피 게시판, MENU_ID 2 = 정보 공유 게시판
+    const apiUrl = postType === '1' 
+      ? `/api/recipes/${postId}`
+      : `/api/tips/${postId}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        authorName: '' // 필요시 작성자 이름 확인 추가 가능
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert(result.message || '게시글 삭제에 실패했습니다.');
+      return;
+    }
+    
+    alert('게시글이 삭제되었습니다.');
+    
+    // 게시판 목록으로 이동 (postType이 이미 MENU_ID)
+    window.location.href = `/board.html?board=${postType}`;
+  } catch (error) {
+    console.error('게시글 삭제 오류:', error);
+    alert('게시글 삭제 중 오류가 발생했습니다.');
+  }
+}
+
 // 페이지 로드 시 게시글 불러오기
 document.addEventListener('DOMContentLoaded', async function() {
   await loadPost();
@@ -1228,6 +1398,13 @@ document.addEventListener('DOMContentLoaded', async function() {
       submitComment();
     }
   });
+  
+  // 게시글 수정/삭제 버튼 이벤트
+  document.getElementById('editPostBtn').addEventListener('click', editPost);
+  document.getElementById('deletePostBtn').addEventListener('click', deletePost);
+  
+  // 목록으로 버튼 이벤트
+  document.getElementById('backToListBtn').addEventListener('click', goBackToList);
   
   // Footer 로드
   fetch('/footer.html')

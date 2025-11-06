@@ -120,6 +120,10 @@ main { padding-top: 2rem; padding-bottom: 4rem; }
               <button type="button" class="btn btn-sm btn-outline-secondary" data-command="createLink" title="링크">
                 🔗
               </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="imageUploadBtn" title="이미지">
+                🖼️
+              </button>
+              <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
               <div style="flex-grow: 1;"></div>
             </div>
             <div class="editor-content" id="editorContent" contenteditable="true" 
@@ -266,6 +270,8 @@ const EditorManager = {
     this.setupTagInput();
     this.setupFormSubmit();
     this.setupPasteHandler();
+    this.setupEnterKeyHandler();
+    this.setupImageUpload();
   },
 
   setupToolbar() {
@@ -553,6 +559,90 @@ const EditorManager = {
     });
   },
 
+  setupEnterKeyHandler() {
+    this.contentElement.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        
+        // 현재 선택 영역
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        
+        // br 태그 2개 삽입 (줄바꿈 효과)
+        const br1 = document.createElement('br');
+        const br2 = document.createElement('br');
+        
+        range.deleteContents();
+        range.insertNode(br2);
+        range.insertNode(br1);
+        
+        // 커서를 br 다음으로 이동
+        range.setStartAfter(br2);
+        range.setEndAfter(br2);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    });
+  },
+
+  setupImageUpload() {
+    const imageUploadBtn = document.getElementById('imageUploadBtn');
+    const imageUploadInput = document.getElementById('imageUploadInput');
+    
+    if (!imageUploadBtn || !imageUploadInput) return;
+    
+    // 이미지 버튼 클릭 시 파일 선택 대화상자 열기
+    imageUploadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      imageUploadInput.click();
+    });
+    
+    // 파일 선택 시 업로드 처리
+    imageUploadInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // 파일 타입 검증
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드할 수 있습니다.');
+        return;
+      }
+      
+      // 파일 크기 검증 (5MB 제한)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 파일 크기는 5MB 이하여야 합니다.');
+        return;
+      }
+      
+      try {
+        // FormData로 파일 전송
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const response = await fetch('/api/upload/image', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // 이미지를 에디터에 삽입
+          const imgHtml = `<img src="${result.url}" alt="${file.name}" style="max-width: 100%; height: auto; margin: 1em 0;">`;
+          document.execCommand('insertHTML', false, imgHtml);
+        } else {
+          alert('이미지 업로드에 실패했습니다: ' + result.message);
+        }
+      } catch (error) {
+        console.error('이미지 업로드 오류:', error);
+        alert('이미지 업로드 중 오류가 발생했습니다.');
+      }
+      
+      // input 초기화
+      imageUploadInput.value = '';
+    });
+  },
+
   showPreview(previewModal) {
     const title = this.titleElement.value.trim() || '(제목 없음)';
     let content = this.contentElement.innerHTML;
@@ -637,27 +727,51 @@ const EditorManager = {
       return;
     }
     
+    // 수정 모드 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('postId');
+    const postType = urlParams.get('postType');
+    const isEditMode = postId && postType;
+    
+    // 작성자 이름 입력 (수정 모드에서도)
+    const authorName = prompt('작성자 이름을 입력하세요:', '익명');
+    if (!authorName) {
+      return;
+    }
+    
     // 폼 데이터 준비
     const postData = {
       title: title,
       content: content,
       subcategory: subcategory,
       tags: document.getElementById('postTags').value || '',
-      authorName: '익명' // 추후 로그인 기능 추가 시 변경
+      authorName: authorName
     };
     
     // 게시판 ID에 따라 API 엔드포인트 결정
     const apiEndpoint = boardId === '1' ? '/api/recipes' : '/api/tips';
     
     try {
-      // 서버로 데이터 전송
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(postData)
-      });
+      let response;
+      if (isEditMode) {
+        // 수정 모드: PUT 요청
+        response = await fetch(`${apiEndpoint}/${postId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(postData)
+        });
+      } else {
+        // 새 게시글: POST 요청
+        response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(postData)
+        });
+      }
       
       const result = await response.json();
       
@@ -665,26 +779,33 @@ const EditorManager = {
         // 발행 완료 플래그 설정 (페이지 이탈 경고 비활성화)
         isPublished = true;
         
-        alert('게시글이 발행되었습니다!');
+        alert(isEditMode ? '게시글이 수정되었습니다!' : '게시글이 발행되었습니다!');
         
         // 임시 저장 데이터 삭제
         localStorage.removeItem('postDraft');
         
-        // 모달 닫기
-        previewModal.hide();
+        // 모달 닫기 (있는 경우)
+        if (typeof previewModal !== 'undefined' && previewModal) {
+          previewModal.hide();
+        }
         
-        // 해당 게시판/카테고리 페이지로 이동
-        const params = new URLSearchParams();
-        params.set('board', boardId);
-        params.set('category', subcategory);
-        
-        window.location.href = `/board.html?${params.toString()}`;
+        if (isEditMode) {
+          // 수정 모드: 상세 페이지로 이동 (postType이 이미 MENU_ID)
+          window.location.href = `/post-detail.html?type=${postType}&id=${postId}`;
+        } else {
+          // 새 게시글: 해당 게시판/카테고리 페이지로 이동
+          const params = new URLSearchParams();
+          params.set('board', boardId);
+          params.set('category', subcategory);
+          
+          window.location.href = `/board.html?${params.toString()}`;
+        }
       } else {
-        alert('게시글 발행에 실패했습니다: ' + result.message);
+        alert(isEditMode ? '게시글 수정에 실패했습니다: ' + result.message : '게시글 발행에 실패했습니다: ' + result.message);
       }
     } catch (error) {
-      console.error('게시글 발행 오류:', error);
-      alert('게시글 발행 중 오류가 발생했습니다.');
+      console.error('게시글 처리 오류:', error);
+      alert(isEditMode ? '게시글 수정 중 오류가 발생했습니다.' : '게시글 발행 중 오류가 발생했습니다.');
     }
   },
   
@@ -784,7 +905,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     return {
       board: urlParams.get('board'),
-      category: urlParams.get('category')
+      category: urlParams.get('category'),
+      postId: urlParams.get('postId'),
+      postType: urlParams.get('postType')
     };
   }
   
@@ -808,12 +931,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // 메뉴 로드 실행
-  loadMenus().then(() => {
-    // URL 파라미터가 있으면 우선 적용, 없으면 임시 저장 데이터 복원
-    const urlParams = getUrlParams();
+  // 게시글 수정 모드: URL 파라미터에서 postId와 postType(MENU_ID) 확인
+  const urlParams = getUrlParams();
+  const postId = urlParams.postId;
+  const postType = urlParams.postType; // '1' (레시피) or '2' (정보 공유) - MENU_TB의 MENU_ID
+  let isEditMode = false;
+  let editPostId = null;
+  let editPostType = null;
+  
+  console.log('🔍 수정 모드 확인:', { postId, postType, urlParams });
+  
+  // 수정 모드인 경우 게시글 데이터 로드
+  async function loadPostForEdit(postId, postType) {
+    console.log('🔍 게시글 수정 모드 - 로드 시작:', { postId, postType });
     
-    if (urlParams.board) {
+    try {
+      // MENU_ID 1 = 레시피 게시판, MENU_ID 2 = 정보 공유 게시판
+      const apiUrl = postType === '1' 
+        ? `/api/recipes/${postId}`
+        : `/api/tips/${postId}`;
+      
+      console.log('🔍 API 호출:', apiUrl);
+      const response = await fetch(apiUrl);
+      const result = await response.json();
+      
+      console.log('🔍 API 응답:', result);
+      
+      if (!result.success) {
+        alert('게시글을 불러올 수 없습니다: ' + result.message);
+        return false;
+      }
+      
+      const data = result.data;
+      console.log('🔍 게시글 데이터:', data);
+      
+      // 제목 설정
+      EditorManager.titleElement.value = data.TITLE || '';
+      // 제목 글자 수 업데이트
+      const titleCount = document.getElementById('titleCharCount');
+      if (titleCount) {
+        titleCount.textContent = (data.TITLE || '').length;
+      }
+      
+      // 본문 설정
+      EditorManager.contentElement.innerHTML = data.CONTENT || '';
+      console.log('🔍 본문 설정 완료:', data.CONTENT ? '있음' : '없음');
+      
+      // 카테고리 설정 (메뉴 로드 후)
+      if (data.CATEGORY) {
+        console.log('🔍 카테고리 설정:', data.CATEGORY);
+        setTimeout(() => {
+          // 게시판 선택 (postType이 이미 MENU_ID)
+          const boardId = postType; // '1' 또는 '2'
+          categorySelect.value = boardId;
+          categorySelect.dispatchEvent(new Event('change'));
+          
+          // 카테고리 선택
+          setTimeout(() => {
+            subCategorySelect.value = data.CATEGORY;
+            console.log('🔍 카테고리 선택 완료:', data.CATEGORY);
+          }, 200);
+        }, 300);
+      }
+      
+      // 태그 설정
+      if (data.TAGS) {
+        const tags = data.TAGS.split(',').map(tag => tag.trim()).filter(tag => tag);
+        tags.forEach(tag => {
+          const tagInput = document.getElementById('tagInput');
+          tagInput.value = tag;
+          tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+        });
+        console.log('🔍 태그 설정 완료:', tags);
+      }
+      
+      // 페이지 제목 변경
+      document.title = '게시글 수정 - 샌드위치냠냠';
+      
+      // 발행 버튼 텍스트 변경
+      const publishBtn = document.getElementById('publishBtn');
+      if (publishBtn) {
+        publishBtn.textContent = '수정 완료';
+      }
+      
+      console.log('✅ 게시글 수정 모드 로드 완료');
+      return true;
+    } catch (error) {
+      console.error('게시글 로드 오류:', error);
+      alert('게시글을 불러오는 중 오류가 발생했습니다.');
+      return false;
+    }
+  }
+  
+  // 메뉴 로드 실행
+  loadMenus().then(async () => {
+    console.log('🔍 메뉴 로드 완료, 수정 모드 확인:', { postId, postType });
+    // 수정 모드인 경우 게시글 데이터 로드
+    if (postId && postType) {
+      console.log('✅ 수정 모드 활성화');
+      isEditMode = true;
+      editPostId = postId;
+      editPostType = postType;
+      await loadPostForEdit(postId, postType);
+    } else if (urlParams.board) {
       // URL 파라미터로 드롭다운 설정
       setDropdownsFromUrl();
     } else {

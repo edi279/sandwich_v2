@@ -20,15 +20,24 @@ router.get('/', async (req, res) => {
     
     let query = 'SELECT * FROM TIP_TB';
     const params = [];
+    let whereConditions = [];
+    
+    // 삭제되지 않은 게시글만 조회
+    whereConditions.push('DELETED_YN = ?');
+    params.push('N');
     
     // 카테고리 필터링 (MENU_ID 기반)
     const filterCategory = category || subcategory;
     if (filterCategory) {
       const categoryId = parseInt(filterCategory);
       if (!isNaN(categoryId)) {
-        query += ' WHERE CATEGORY = ?';
+        whereConditions.push('CATEGORY = ?');
         params.push(categoryId);
       }
+    }
+    
+    if (whereConditions.length > 0) {
+      query += ' WHERE ' + whereConditions.join(' AND ');
     }
     
     // LIMIT와 OFFSET은 직접 값으로 삽입 (MySQL 8.0 호환성)
@@ -39,12 +48,22 @@ router.get('/', async (req, res) => {
     // 전체 개수 조회
     let countQuery = 'SELECT COUNT(*) as total FROM TIP_TB';
     const countParams = [];
+    const countWhereConditions = [];
+    
+    // 삭제되지 않은 게시글만 조회
+    countWhereConditions.push('DELETED_YN = ?');
+    countParams.push('N');
+    
     if (filterCategory) {
       const categoryId = parseInt(filterCategory);
       if (!isNaN(categoryId)) {
-        countQuery += ' WHERE CATEGORY = ?';
+        countWhereConditions.push('CATEGORY = ?');
         countParams.push(categoryId);
       }
+    }
+    
+    if (countWhereConditions.length > 0) {
+      countQuery += ' WHERE ' + countWhereConditions.join(' AND ');
     }
     const [countRows] = await pool.execute(countQuery, countParams);
     const total = countRows[0].total;
@@ -90,11 +109,11 @@ router.get('/:id', async (req, res) => {
       [id]
     );
     
-    // View에서 명시적으로 컬럼을 선택하여 데이터 조회
+    // View에서 명시적으로 컬럼을 선택하여 데이터 조회 (삭제되지 않은 게시글만)
     const query = `SELECT 
       TIP_ID, TITLE, AUTHOR_ID, AUTHOR_NAME, CATEGORY, CATEGORY_NAME,
-      VIEWS, CREATED_AT, UPDATED_AT, TIP_CONTENT_ID, CONTENT, TAGS
-     FROM V_TIP_WITH_CONTENT WHERE TIP_ID = ?`;
+      VIEWS, CREATED_AT, UPDATED_AT, TIP_CONTENT_ID, CONTENT, TAGS, DELETED_YN
+     FROM V_TIP_WITH_CONTENT WHERE TIP_ID = ? AND (DELETED_YN = 'N' OR DELETED_YN IS NULL)`;
     
     console.log('🔍 실행할 쿼리:', query);
     console.log('🔍 파라미터:', [id]);
@@ -213,6 +232,138 @@ router.post('/', async (req, res) => {
     });
   } finally {
     connection.release();
+  }
+});
+
+// 정보 공유 게시글 수정
+router.put('/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const { id } = req.params;
+    const { title, content, subcategory, tags, authorName } = req.body;
+    
+    // 입력값 검증
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        message: '제목과 본문은 필수 항목입니다.'
+      });
+    }
+    
+    if (!subcategory) {
+      return res.status(400).json({
+        success: false,
+        message: '카테고리를 선택해주세요.'
+      });
+    }
+    
+    // 게시글 존재 및 삭제 여부 확인
+    const [existingRows] = await connection.execute(
+      'SELECT * FROM TIP_TB WHERE TIP_ID = ? AND (DELETED_YN = "N" OR DELETED_YN IS NULL)',
+      [id]
+    );
+    
+    if (existingRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '게시글을 찾을 수 없습니다.'
+      });
+    }
+    
+    const categoryId = parseInt(subcategory);
+    
+    // TIP_TB 업데이트
+    await connection.execute(
+      'UPDATE TIP_TB SET TITLE = ?, AUTHOR_NAME = ?, CATEGORY = ? WHERE TIP_ID = ?',
+      [title, authorName || '익명', categoryId, id]
+    );
+    
+    // TIP_CONTENT_TB 업데이트 (존재하면 업데이트, 없으면 INSERT)
+    const [contentRows] = await connection.execute(
+      'SELECT * FROM TIP_CONTENT_TB WHERE TIP_ID = ?',
+      [id]
+    );
+    
+    if (contentRows.length > 0) {
+      await connection.execute(
+        'UPDATE TIP_CONTENT_TB SET CONTENT = ?, TAGS = ? WHERE TIP_ID = ?',
+        [content, tags || '', id]
+      );
+    } else {
+      await connection.execute(
+        'INSERT INTO TIP_CONTENT_TB (TIP_ID, CONTENT, TAGS) VALUES (?, ?, ?)',
+        [id, content, tags || '']
+      );
+    }
+    
+    await connection.commit();
+    
+    res.json({
+      success: true,
+      message: '게시글이 수정되었습니다.',
+      data: {
+        tipId: id,
+        categoryId
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('정보 공유 수정 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '게시글 수정 중 오류가 발생했습니다.'
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+// 정보 공유 게시글 삭제 (Soft Delete)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { authorName } = req.body;
+    
+    // 게시글 존재 및 삭제 여부 확인
+    const [rows] = await pool.execute(
+      'SELECT * FROM TIP_TB WHERE TIP_ID = ? AND (DELETED_YN = "N" OR DELETED_YN IS NULL)',
+      [id]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '게시글을 찾을 수 없습니다.'
+      });
+    }
+    
+    // 작성자 확인 (선택사항, 필요시 추가)
+    // if (authorName && rows[0].AUTHOR_NAME !== authorName) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: '작성자만 삭제할 수 있습니다.'
+    //   });
+    // }
+    
+    // Soft Delete (DELETED_YN을 'Y'로 변경)
+    await pool.execute(
+      'UPDATE TIP_TB SET DELETED_YN = "Y" WHERE TIP_ID = ?',
+      [id]
+    );
+    
+    res.json({
+      success: true,
+      message: '게시글이 삭제되었습니다.'
+    });
+  } catch (error) {
+    console.error('정보 공유 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '게시글 삭제 중 오류가 발생했습니다.'
+    });
   }
 });
 

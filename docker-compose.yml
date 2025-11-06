@@ -40,6 +40,7 @@ services:
       - ./server.js:/app/server.js
       - ./routes:/app/routes
       - ./config:/app/config
+      - ./uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy

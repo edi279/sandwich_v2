@@ -15,16 +15,12 @@ router.get('/', async (req, res) => {
       });
     }
     
-    // postType 유효성 검증 및 변환 (recipe -> 1, tip -> 2)
-    let postTypeId;
-    if (postType === 'recipe') {
-      postTypeId = 1;
-    } else if (postType === 'tip') {
-      postTypeId = 2;
-    } else {
+    // postType 유효성 검증 (MENU_ID: 1 = 레시피, 2 = 정보 공유)
+    const postTypeId = parseInt(postType);
+    if (isNaN(postTypeId) || (postTypeId !== 1 && postTypeId !== 2)) {
       return res.status(400).json({
         success: false,
-        message: 'postType은 recipe 또는 tip이어야 합니다.'
+        message: 'postType은 MENU_ID 값(1 또는 2)이어야 합니다.'
       });
     }
     
@@ -85,16 +81,12 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // postType 유효성 검증 및 변환 (recipe -> 1, tip -> 2)
-    let postTypeId;
-    if (postType === 'recipe') {
-      postTypeId = 1;
-    } else if (postType === 'tip') {
-      postTypeId = 2;
-    } else {
+    // postType 유효성 검증 (MENU_ID: 1 = 레시피, 2 = 정보 공유)
+    const postTypeId = parseInt(postType);
+    if (isNaN(postTypeId) || (postTypeId !== 1 && postTypeId !== 2)) {
       return res.status(400).json({
         success: false,
-        message: '게시글 타입은 recipe 또는 tip이어야 합니다.'
+        message: 'postType은 MENU_ID 값(1 또는 2)이어야 합니다.'
       });
     }
     

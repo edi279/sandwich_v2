@@ -108,6 +108,7 @@ SELECT
     r.VIEWS,
     r.CREATED_AT,
     r.UPDATED_AT,
+    r.DELETED_YN,
     rc.RECIPE_CONTENT_ID,
     rc.CONTENT,
     rc.TAGS
@@ -127,6 +128,7 @@ SELECT
     t.VIEWS,
     t.CREATED_AT,
     t.UPDATED_AT,
+    t.DELETED_YN,
     tc.TIP_CONTENT_ID,
     tc.CONTENT,
     tc.TAGS
