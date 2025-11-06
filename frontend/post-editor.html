@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.youtube.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; frame-src 'self' https://www.youtube.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.youtube.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; frame-src 'self' https://www.youtube.com; connect-src 'self' https://cdn.jsdelivr.net;">
 <title>게시글 작성 - 샌드위치냠냠</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <style>
@@ -59,10 +59,12 @@ main { padding-top: 2rem; padding-bottom: 4rem; }
           <!-- 상단 바: 카테고리와 버튼 -->
           <div class="editor-top-bar">
             <div class="editor-top-bar-left">
-              <select class="form-select" id="postCategory" name="category" style="width: auto; min-width: 300px;">
-                <option value="">카테고리를 선택하세요</option>
-                <option value="recipe">🥪이렇게 만들어요</option>
-                <option value="tip">💡정보 공유해요</option>
+              <select class="form-select" id="postCategory" name="category" style="width: auto; min-width: 200px;">
+                <option value="">게시판 선택</option>
+                <!-- 메뉴는 동적으로 로드됩니다 -->
+              </select>
+              <select class="form-select" id="postSubCategory" name="subcategory" style="width: auto; min-width: 200px; margin-left: 0px;" disabled>
+                <option value="">카테고리 선택</option>
               </select>
             </div>
             <div class="editor-top-bar-right">
@@ -511,6 +513,7 @@ const EditorManager = {
         title: SecurityUtils.escapeHtml(title),
         content: content,
         category: document.getElementById('postCategory').value || '',
+        subcategory: document.getElementById('postSubCategory').value || '',
         tags: document.getElementById('postTags').value || ''
       };
       
@@ -563,20 +566,34 @@ const EditorManager = {
       content = SecurityUtils.sanitizeHtml(content);
     }
     
-    const category = document.getElementById('postCategory').value || '미선택';
+    // 카테고리 텍스트 가져오기 (ID가 아닌 이름)
+    const categorySelect = document.getElementById('postCategory');
+    const subCategorySelect = document.getElementById('postSubCategory');
+    
+    const categoryText = categorySelect.selectedIndex > 0 
+      ? categorySelect.options[categorySelect.selectedIndex].text 
+      : '미선택';
+      
+    const subCategoryText = subCategorySelect.selectedIndex > 0 
+      ? ' > ' + subCategorySelect.options[subCategorySelect.selectedIndex].text 
+      : '';
+      
+    const category = categoryText + subCategoryText;
+    
     const tags = document.getElementById('postTags').value 
       ? document.getElementById('postTags').value.split(',').map(t => SecurityUtils.escapeHtml(t)).join(', ')
       : '없음';
     
     document.getElementById('previewTitle').textContent = SecurityUtils.escapeHtml(title);
     document.getElementById('previewContent').innerHTML = content;
-    document.getElementById('previewCategory').textContent = SecurityUtils.escapeHtml(category);
+    // 카테고리는 MENU_NAME으로 이미 안전한 데이터이므로 직접 할당
+    document.getElementById('previewCategory').textContent = category;
     document.getElementById('previewTags').textContent = tags;
     
     previewModal.show();
   },
   
-  executePublish(previewModal) {
+  async executePublish(previewModal) {
     // 제목 검증
     const title = this.titleElement.value.trim();
     if (!SecurityUtils.validateInput(title, 200)) {
@@ -607,30 +624,68 @@ const EditorManager = {
     this.contentInput.value = content;
     
     // 카테고리 검증
-    const category = document.getElementById('postCategory').value;
-    if (!category) {
-      if (!confirm('카테고리가 선택되지 않았습니다. 계속하시겠습니까?')) {
-        return;
-      }
+    const boardId = document.getElementById('postCategory').value;
+    if (!boardId) {
+      alert('게시판을 선택해주세요.');
+      return;
+    }
+    
+    // 하위 카테고리 검증 (필수)
+    const subcategory = document.getElementById('postSubCategory').value;
+    if (!subcategory) {
+      alert('카테고리를 선택해주세요.');
+      return;
     }
     
     // 폼 데이터 준비
-    const formData = {
-      title: SecurityUtils.escapeHtml(title),
+    const postData = {
+      title: title,
       content: content,
-      category: category || '',
-      tags: document.getElementById('postTags').value || ''
+      subcategory: subcategory,
+      tags: document.getElementById('postTags').value || '',
+      authorName: '익명' // 추후 로그인 기능 추가 시 변경
     };
     
-    // 실제 서버 전송은 여기서 처리
-    console.log('게시글 데이터:', formData);
-    alert('게시글이 발행되었습니다! (실제 구현 시 서버로 전송)');
+    // 게시판 ID에 따라 API 엔드포인트 결정
+    const apiEndpoint = boardId === '1' ? '/api/recipes' : '/api/tips';
     
-    // 모달 닫기
-    previewModal.hide();
-    
-    // 성공 후 처리 (예: 리다이렉트)
-    // window.location.href = '/posts';
+    try {
+      // 서버로 데이터 전송
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(postData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 발행 완료 플래그 설정 (페이지 이탈 경고 비활성화)
+        isPublished = true;
+        
+        alert('게시글이 발행되었습니다!');
+        
+        // 임시 저장 데이터 삭제
+        localStorage.removeItem('postDraft');
+        
+        // 모달 닫기
+        previewModal.hide();
+        
+        // 해당 게시판/카테고리 페이지로 이동
+        const params = new URLSearchParams();
+        params.set('board', boardId);
+        params.set('category', subcategory);
+        
+        window.location.href = `/board.html?${params.toString()}`;
+      } else {
+        alert('게시글 발행에 실패했습니다: ' + result.message);
+      }
+    } catch (error) {
+      console.error('게시글 발행 오류:', error);
+      alert('게시글 발행 중 오류가 발생했습니다.');
+    }
   },
   
   setupPreview() {
@@ -654,33 +709,163 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err => console.error('Footer 로드 실패:', err));
   
-  // 임시 저장 데이터 복원
-  const savedDraft = localStorage.getItem('draft_post');
-  if (savedDraft) {
+  // 메뉴 데이터 저장 변수
+  let menuData = {
+    boards: [],
+    categories: []
+  };
+  
+  const categorySelect = document.getElementById('postCategory');
+  const subCategorySelect = document.getElementById('postSubCategory');
+  
+  // API에서 메뉴 데이터 로드
+  async function loadMenus() {
     try {
-      const draft = JSON.parse(savedDraft);
-      if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
-        EditorManager.titleElement.value = draft.title || '';
-        EditorManager.contentElement.innerHTML = draft.content || '';
-        if (draft.category) {
-          document.getElementById('postCategory').value = draft.category;
-        }
-        if (draft.tags) {
-          const tags = draft.tags.split(',');
-          tags.forEach(tag => {
-            document.getElementById('tagInput').value = tag;
-            document.getElementById('tagInput').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-          });
-        }
+      const response = await fetch('/api/menus');
+      const result = await response.json();
+      
+      if (result.success) {
+        menuData = result.data;
+        
+        // 게시판(대메뉴) 드롭다운 채우기
+        categorySelect.innerHTML = '<option value="">게시판 선택</option>';
+        menuData.boards.forEach(board => {
+          const option = document.createElement('option');
+          option.value = board.MENU_ID;
+          option.textContent = board.MENU_NAME;
+          categorySelect.appendChild(option);
+        });
+        
+        console.log('메뉴 로드 완료:', menuData);
+        return true;
+      } else {
+        console.error('메뉴 로드 실패:', result.message);
+        alert('메뉴를 불러오는데 실패했습니다.');
+        return false;
       }
-    } catch (e) {
-      console.error('임시 저장 데이터 복원 실패:', e);
+    } catch (error) {
+      console.error('메뉴 로드 오류:', error);
+      alert('메뉴를 불러오는 중 오류가 발생했습니다.');
+      return false;
     }
   }
+  
+  // 대메뉴 선택 시 소메뉴 업데이트
+  categorySelect.addEventListener('change', function() {
+    const selectedBoardId = this.value;
+    
+    // 소메뉴 초기화
+    subCategorySelect.innerHTML = '<option value="">카테고리 선택</option>';
+    
+    if (selectedBoardId) {
+      // 선택된 게시판에 속하는 카테고리만 필터링
+      const relatedCategories = menuData.categories.filter(
+        cat => cat.MENU_TOP === parseInt(selectedBoardId)
+      );
+      
+      if (relatedCategories.length > 0) {
+        relatedCategories.forEach(category => {
+          const option = document.createElement('option');
+          option.value = category.MENU_ID;
+          option.textContent = category.MENU_NAME;
+          subCategorySelect.appendChild(option);
+        });
+        subCategorySelect.disabled = false;
+      } else {
+        subCategorySelect.disabled = true;
+      }
+    } else {
+      subCategorySelect.disabled = true;
+    }
+  });
+  
+  // URL 파라미터에서 게시판과 카테고리 정보 읽기
+  function getUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+      board: urlParams.get('board'),
+      category: urlParams.get('category')
+    };
+  }
+  
+  // URL 파라미터를 기반으로 드롭다운 설정
+  function setDropdownsFromUrl() {
+    const params = getUrlParams();
+    
+    if (!params.board) return; // URL 파라미터가 없으면 설정하지 않음
+    
+    // 게시판 드롭다운 설정
+    categorySelect.value = params.board;
+    
+    // 카테고리 변경 이벤트 트리거하여 소메뉴 업데이트
+    categorySelect.dispatchEvent(new Event('change'));
+    
+    // 카테고리 설정 (소메뉴 업데이트 후)
+    if (params.category) {
+      setTimeout(() => {
+        subCategorySelect.value = params.category;
+      }, 200); // 소메뉴 업데이트 대기
+    }
+  }
+  
+  // 메뉴 로드 실행
+  loadMenus().then(() => {
+    // URL 파라미터가 있으면 우선 적용, 없으면 임시 저장 데이터 복원
+    const urlParams = getUrlParams();
+    
+    if (urlParams.board) {
+      // URL 파라미터로 드롭다운 설정
+      setDropdownsFromUrl();
+    } else {
+      // 임시 저장 데이터 복원 (URL 파라미터가 없을 때만)
+      const savedDraft = localStorage.getItem('draft_post');
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
+            EditorManager.titleElement.value = draft.title || '';
+            EditorManager.contentElement.innerHTML = draft.content || '';
+            if (draft.category) {
+              // 메뉴 로드 완료 후 복원
+              setTimeout(() => {
+                document.getElementById('postCategory').value = draft.category;
+                // 카테고리 변경 이벤트 트리거하여 소메뉴 업데이트
+                categorySelect.dispatchEvent(new Event('change'));
+                
+                // 소메뉴도 복원
+                if (draft.subcategory) {
+                  setTimeout(() => {
+                    document.getElementById('postSubCategory').value = draft.subcategory;
+                  }, 100);
+                }
+              }, 300);
+            }
+            if (draft.tags) {
+              const tags = draft.tags.split(',');
+              tags.forEach(tag => {
+                document.getElementById('tagInput').value = tag;
+                document.getElementById('tagInput').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+              });
+            }
+          }
+        } catch (e) {
+          console.error('임시 저장 데이터 복원 실패:', e);
+        }
+      }
+    }
+  });
 });
+
+// 페이지 이탈 경고 플래그
+let isPublished = false;
 
 // 페이지 이탈 경고
 window.addEventListener('beforeunload', (e) => {
+  // 발행이 완료되었으면 경고하지 않음
+  if (isPublished) {
+    return;
+  }
+  
   const title = EditorManager.titleElement.value.trim();
   const content = EditorManager.contentElement.textContent.trim();
   
@@ -692,4 +877,3 @@ window.addEventListener('beforeunload', (e) => {
 </script>
 </body>
 </html>
-

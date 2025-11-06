@@ -497,31 +497,55 @@ let currentPageRecipe = 1;
 let totalPages = 5;
 let totalPagesRecipe = 5;
 
-// 카테고리 데이터 구조 (DB에서 불러올 데이터 형식) - 통합
-const categoryConfig = {
-  'recipe': [
-    { id: 'picnic', label: '피크닉/홈카페', isDefault: true },
-    { id: 'lunchbox', label: '데일리 도시락', isDefault: false }
-  ],
-  'tip': [
-    { id: 'sauce', label: '소스 배합', isDefault: true },
-    { id: 'tool', label: '조리 도구', isDefault: false },
-    { id: 'sale', label: '할인 소식', isDefault: false },
-    { id: 'etc', label: '기타', isDefault: false }
-  ]
-  // 다른 페이지 ID에 대한 카테고리도 여기에 추가 가능
+// 카테고리 데이터 저장 변수
+let menuData = {
+  boards: [],
+  categories: []
 };
 
+// MENU_TB에서 카테고리 데이터를 불러오는 함수
+async function loadCategoryFromServer() {
+  try {
+    const response = await fetch('/api/menus');
+    const result = await response.json();
+    
+    if (result.success) {
+      menuData = result.data;
+      return true;
+    } else {
+      console.error('메뉴 로드 실패:', result.message);
+      return false;
+    }
+  } catch (error) {
+    console.error('카테고리 로드 오류:', error);
+    return false;
+  }
+}
+
 // 카테고리 생성 함수 (통합 - recipe와 tip 모두 처리)
-function renderCategory(pageId) {
+async function renderCategory(pageId) {
   const categoryButtons = document.getElementById('categoryButtons');
   if (!categoryButtons) return;
 
+  // 메뉴 데이터가 없으면 로드
+  if (menuData.boards.length === 0) {
+    await loadCategoryFromServer();
+  }
+
   // 페이지 ID에 맞는 카테고리 데이터 가져오기
-  const menuItems = categoryConfig[pageId];
-  if (!menuItems) {
-    console.warn(`카테고리 설정을 찾을 수 없습니다: ${pageId}`);
-    categoryButtons.innerHTML = '';
+  let menuItems = [];
+  
+  if (pageId === 'recipe') {
+    // MENU_ID 1번 (이렇게 만들어요)의 하위 카테고리
+    menuItems = menuData.categories.filter(cat => cat.MENU_TOP === 1);
+  } else if (pageId === 'tip') {
+    // MENU_ID 2번 (정보 공유해요)의 하위 카테고리
+    menuItems = menuData.categories.filter(cat => cat.MENU_TOP === 2);
+  }
+  
+  if (menuItems.length === 0) {
+    console.warn(`카테고리를 찾을 수 없습니다: ${pageId}`);
+    categoryButtons.innerHTML = '<p class="text-muted">카테고리가 없습니다.</p>';
     return;
   }
   
@@ -531,28 +555,23 @@ function renderCategory(pageId) {
   // 카테고리 버튼 동적 생성
   menuItems.forEach((item, index) => {
     const button = document.createElement('button');
-    button.className = `category-btn ${item.isDefault ? 'active' : ''}`;
+    button.className = `category-btn ${index === 0 ? 'active' : ''}`;
     
-    // recipe와 tip에 따라 다른 data 속성 사용
-    if (pageId === 'recipe') {
-      button.setAttribute('data-category', item.id);
-    } else {
-      button.setAttribute('data-subcategory', item.id);
-    }
+    // MENU_ID를 data-category로 사용 (통일)
+    button.setAttribute('data-category', item.MENU_ID);
     
-    button.textContent = item.label;
+    button.textContent = item.MENU_NAME;
     
     // 클릭 이벤트 추가
     button.addEventListener('click', function() {
       document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       
+      const categoryId = this.dataset.category;
       if (pageId === 'recipe') {
-        const category = this.dataset.category;
-        loadRecipes(category, 1);
+        loadRecipes(categoryId, 1);
       } else {
-        const subcategory = this.dataset.subcategory;
-        loadTips(subcategory, 1);
+        loadTips(categoryId, 1);
       }
     });
     
@@ -562,29 +581,12 @@ function renderCategory(pageId) {
   // 생성 후 첫 번째 활성화된 버튼으로 게시글 로드
   const activeButton = categoryButtons.querySelector('.category-btn.active');
   if (activeButton) {
+    const categoryId = activeButton.dataset.category;
     if (pageId === 'recipe') {
-      const category = activeButton.dataset.category;
-      loadRecipes(category, 1);
+      loadRecipes(categoryId, 1);
     } else {
-      const subcategory = activeButton.dataset.subcategory;
-      loadTips(subcategory, 1);
+      loadTips(categoryId, 1);
     }
-  }
-}
-
-// 서버에서 카테고리 데이터를 불러오는 함수 (향후 DB 연동 시 사용)
-async function loadCategoryFromServer(pageId) {
-  try {
-    // 실제 구현 시 서버 API 호출
-    // const response = await fetch(`/api/category/${pageId}`);
-    // const menuItems = await response.json();
-    // return menuItems;
-    
-    // 현재는 로컬 데이터 사용
-    return categoryConfig[pageId] || [];
-  } catch (error) {
-    console.error('카테고리 로드 실패:', error);
-    return categoryConfig[pageId] || []; // 기본값 반환
   }
 }
 
@@ -651,7 +653,26 @@ document.getElementById('tipBtn').addEventListener('click', function() {
 
 // 글쓰기 버튼 클릭 처리
 document.getElementById('writeBtn').addEventListener('click', function() {
-  window.location.href = '/post-editor.html';
+  // 현재 선택된 게시판 타입 확인 (recipe = MENU_ID 1, tip = MENU_ID 2)
+  const boardMenuId = currentBoardType === 'recipe' ? '1' : '2';
+  
+  // 현재 활성화된 카테고리 버튼 확인
+  const activeCategoryBtn = document.querySelector('.category-btn.active');
+  let categoryMenuId = '';
+  
+  if (activeCategoryBtn) {
+    categoryMenuId = activeCategoryBtn.dataset.category || '';
+  }
+  
+  // URL 파라미터 생성
+  const params = new URLSearchParams();
+  params.set('board', boardMenuId);
+  if (categoryMenuId) {
+    params.set('category', categoryMenuId);
+  }
+  
+  // post-editor.html로 이동 (현재 게시판과 카테고리 정보 전달)
+  window.location.href = `/post-editor.html?${params.toString()}`;
 });
 
 // writeBtnTip은 제거되었고, writeBtn 하나로 통합됨
@@ -711,8 +732,8 @@ function renderRecipes(recipes) {
     const card = document.createElement('div');
     card.className = 'post-card';
     card.onclick = () => {
-      // 상세 페이지로 이동 (추후 구현 가능)
-      console.log('레시피 상세:', recipe.RECIPE_ID);
+      // 상세 페이지로 이동
+      window.location.href = `/post-detail.html?type=recipe&id=${recipe.RECIPE_ID}`;
     };
     
     // 기본 이미지: data URI를 사용하여 네트워크 오류 방지
@@ -734,11 +755,11 @@ function renderRecipes(recipes) {
 }
 
 // 정보 공유 게시글 로드 및 렌더링
-async function loadTips(subcategory = null, page = 1) {
+async function loadTips(category = null, page = 1) {
   try {
     const params = new URLSearchParams({ page, limit: 10 });
-    if (subcategory) {
-      params.append('subcategory', subcategory);
+    if (category) {
+      params.append('category', category);
     }
     
     const url = `/api/tips?${params}`;
@@ -788,8 +809,8 @@ function renderTips(tips) {
     const listItem = document.createElement('div');
     listItem.className = 'post-list-item';
     listItem.onclick = () => {
-      // 상세 페이지로 이동 (추후 구현 가능)
-      console.log('정보 공유 상세:', tip.TIP_ID);
+      // 상세 페이지로 이동
+      window.location.href = `/post-detail.html?type=tip&id=${tip.TIP_ID}`;
     };
     
     const formattedDate = tip.CREATED_AT_FORMATTED || 
@@ -821,8 +842,8 @@ function loadPosts(type) {
     const activeCategory = document.querySelector('.category-btn.active')?.dataset.category;
     loadRecipes(activeCategory || null, currentPageRecipe);
   } else if (type === 'tip') {
-    const activeSubcategory = document.querySelector('.category-btn.active')?.dataset.subcategory;
-    loadTips(activeSubcategory || null, currentPage);
+    const activeCategory = document.querySelector('.category-btn.active')?.dataset.category;
+    loadTips(activeCategory || null, currentPage);
   }
 }
 
@@ -854,7 +875,7 @@ function initPagination() {
   paginationPrev.addEventListener('click', function() {
     if (!this.classList.contains('disabled') && currentPage > 1) {
       currentPage--;
-      loadTips(document.querySelector('.category-btn.active')?.dataset.subcategory || null, currentPage);
+      loadTips(document.querySelector('.category-btn.active')?.dataset.category || null, currentPage);
       updatePagination();
     }
   });
@@ -862,7 +883,7 @@ function initPagination() {
   paginationNext.addEventListener('click', function() {
     if (!this.classList.contains('disabled') && currentPage < totalPages) {
       currentPage++;
-      loadTips(document.querySelector('.category-btn.active')?.dataset.subcategory || null, currentPage);
+      loadTips(document.querySelector('.category-btn.active')?.dataset.category || null, currentPage);
       updatePagination();
     }
   });
@@ -872,7 +893,7 @@ function initPagination() {
     btn.addEventListener('click', function() {
       if (!this.classList.contains('disabled')) {
         currentPage = parseInt(this.textContent);
-        loadTips(document.querySelector('.category-btn.active')?.dataset.subcategory || null, currentPage);
+        loadTips(document.querySelector('.category-btn.active')?.dataset.category || null, currentPage);
         updatePagination();
       }
     });
@@ -992,27 +1013,68 @@ function updatePaginationRecipe() {
 }
 
 // 초기 페이지 제목 설정
-document.addEventListener('DOMContentLoaded', function() {
-  const activeBtn = document.querySelector('.lnb-button.active');
-  if (activeBtn) {
-    updatePageTitle(activeBtn.title);
-    if (activeBtn.id === 'recipeBtn') {
-      switchBoardType('recipe');
-      // 초기 레시피 데이터 로드
-      loadPosts('recipe');
-    } else {
-      switchBoardType('tip');
-      // 초기 정보 공유 데이터 로드
-      loadPosts('tip');
+document.addEventListener('DOMContentLoaded', async function() {
+  // URL 파라미터 읽기
+  const urlParams = new URLSearchParams(window.location.search);
+  const boardParam = urlParams.get('board');
+  const categoryParam = urlParams.get('category');
+  
+  let boardType = 'recipe'; // 기본값
+  
+  // URL 파라미터로 게시판 타입 결정
+  if (boardParam) {
+    if (boardParam === '1') {
+      boardType = 'recipe';
+      document.getElementById('recipeBtn').classList.add('active');
+      document.getElementById('tipBtn').classList.remove('active');
+      updatePageTitle('이렇게 만들어요');
+    } else if (boardParam === '2') {
+      boardType = 'tip';
+      document.getElementById('tipBtn').classList.add('active');
+      document.getElementById('recipeBtn').classList.remove('active');
+      updatePageTitle('정보 공유해요');
     }
+  } else {
+    // 파라미터가 없으면 현재 활성화된 버튼으로 결정
+    const activeBtn = document.querySelector('.lnb-button.active');
+    if (activeBtn) {
+      updatePageTitle(activeBtn.title);
+      boardType = activeBtn.id === 'recipeBtn' ? 'recipe' : 'tip';
+    }
+  }
+  
+  // 게시판 타입 전환
+  switchBoardType(boardType);
+  
+  // 카테고리 렌더링 및 활성화
+  await renderCategory(boardType);
+  
+  // URL 파라미터로 특정 카테고리 활성화
+  if (categoryParam) {
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    categoryButtons.forEach(btn => {
+      if (btn.dataset.category === categoryParam) {
+        // 모든 버튼 비활성화
+        categoryButtons.forEach(b => b.classList.remove('active'));
+        // 해당 버튼 활성화
+        btn.classList.add('active');
+        // 게시글 로드
+        if (boardType === 'recipe') {
+          loadRecipes(categoryParam, 1);
+        } else {
+          loadTips(categoryParam, 1);
+        }
+      }
+    });
+  } else {
+    // 파라미터가 없으면 기본 게시글 로드
+    loadPosts(boardType);
   }
   
   // 페이지네이션 초기화
   initPagination();
   updatePagination();
   updatePaginationRecipe();
-  
-  // switchBoardType에서 이미 renderCategory를 호출하므로 여기서는 호출하지 않음
 });
 
 // Footer 로드
