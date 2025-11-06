@@ -292,6 +292,304 @@ body {
     font-size: 0.85rem;
   }
 }
+
+/* 댓글 섹션 스타일 */
+.comments-section {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.comments-header {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #ffe0e6;
+}
+
+.comments-count {
+  color: #ff6b9d;
+  margin-left: 0.5rem;
+}
+
+/* 댓글 작성 폼 */
+.comment-form {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.comment-form-header {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.comment-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comment-author-input {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.comment-author-input:focus {
+  border-color: #ff6b9d;
+}
+
+.comment-textarea {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.comment-textarea:focus {
+  border-color: #ff6b9d;
+}
+
+.comment-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.comment-char-count {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.comment-submit-btn {
+  padding: 0.6rem 1.5rem;
+  background-color: #ff6b9d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.comment-submit-btn:hover {
+  background-color: #ff5588;
+}
+
+.comment-submit-btn:disabled {
+  background-color: #dee2e6;
+  cursor: not-allowed;
+}
+
+/* 댓글 목록 */
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.comment-item {
+  padding: 1.25rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.comment-item:hover {
+  background-color: #f1f3f5;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.comment-author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.comment-author-profile {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #9ab7cb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.comment-author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.comment-author-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.comment-index {
+  color: #ff6b9d;
+  font-weight: 500;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.comment-action-btn {
+  padding: 0.4rem 0.8rem;
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.comment-action-btn:hover {
+  border-color: #ff6b9d;
+  color: #ff6b9d;
+}
+
+.comment-action-btn.delete {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.comment-action-btn.delete:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.comment-content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.comment-edit-textarea {
+  padding: 0.75rem;
+  border: 1px solid #ff6b9d;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.comment-save-btn,
+.comment-cancel-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.comment-save-btn {
+  background-color: #ff6b9d;
+  color: white;
+}
+
+.comment-save-btn:hover {
+  background-color: #ff5588;
+}
+
+.comment-cancel-btn {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.comment-cancel-btn:hover {
+  background-color: #dee2e6;
+}
+
+.no-comments {
+  text-align: center;
+  padding: 3rem;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .comments-section {
+    padding: 1.5rem;
+  }
+
+  .comment-form {
+    padding: 1rem;
+  }
+
+  .comment-item {
+    padding: 1rem;
+  }
+
+  .comment-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .comment-actions {
+    align-self: flex-start;
+  }
+}
 </style>
 </head>
 <body>
@@ -347,6 +645,44 @@ body {
           <div class="tags-label">태그</div>
           <div class="tag-list" id="tagList"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- 댓글 섹션 -->
+    <div class="comments-section" id="commentsSection" style="display: none;">
+      <div class="comments-header">
+        댓글<span class="comments-count" id="commentsCount">(0)</span>
+      </div>
+
+      <!-- 댓글 작성 폼 -->
+      <div class="comment-form">
+        <div class="comment-form-header">댓글 작성</div>
+        <div class="comment-input-group">
+          <input 
+            type="text" 
+            class="comment-author-input" 
+            id="commentAuthorInput" 
+            placeholder="작성자 이름" 
+            maxlength="50"
+          >
+          <textarea 
+            class="comment-textarea" 
+            id="commentTextarea" 
+            placeholder="댓글을 입력하세요 (최대 1000자)" 
+            maxlength="1000"
+          ></textarea>
+          <div class="comment-form-footer">
+            <span class="comment-char-count">
+              <span id="commentCharCount">0</span> / 1000
+            </span>
+            <button class="comment-submit-btn" id="commentSubmitBtn">댓글 작성</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 댓글 목록 -->
+      <div class="comments-list" id="commentsList">
+        <div class="no-comments">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</div>
       </div>
     </div>
 
@@ -520,9 +856,378 @@ function showError(message) {
   error.textContent = message;
 }
 
+// ============================================================
+// 댓글 관련 함수들
+// ============================================================
+let currentUserName = ''; // 현재 사용자 이름 저장 (작성자 확인용)
+
+// 댓글 목록 로드
+async function loadComments() {
+  if (!postType || !postId) return;
+  
+  try {
+    const response = await fetch(`/api/comments?postType=${postType}&postId=${postId}`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      console.error('댓글 로드 실패:', result.message);
+      return;
+    }
+    
+    displayComments(result.data);
+    document.getElementById('commentsCount').textContent = `(${result.count})`;
+  } catch (error) {
+    console.error('댓글 로드 오류:', error);
+  }
+}
+
+// 댓글 목록 표시
+function displayComments(comments) {
+  const commentsList = document.getElementById('commentsList');
+  
+  if (comments.length === 0) {
+    commentsList.innerHTML = '<div class="no-comments">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</div>';
+    return;
+  }
+  
+  commentsList.innerHTML = '';
+  
+  comments.forEach(comment => {
+    const commentItem = createCommentElement(comment);
+    commentsList.appendChild(commentItem);
+  });
+}
+
+// 댓글 요소 생성
+function createCommentElement(comment) {
+  const div = document.createElement('div');
+  div.className = 'comment-item';
+  div.dataset.commentId = comment.COMMENT_ID;
+  
+  const isDeleted = comment.DELETED_YN === 'Y';
+  const authorInitial = comment.AUTHOR_NAME.charAt(0).toUpperCase();
+  const isEdited = new Date(comment.CREATED_AT).getTime() !== new Date(comment.UPDATED_AT).getTime();
+  
+  // XSS 방지를 위해 HTML 이스케이프
+  const escapeHtml = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
+  
+  const escapedContent = escapeHtml(comment.CONTENT);
+  const escapedAuthorName = escapeHtml(comment.AUTHOR_NAME);
+  
+  // 삭제된 댓글인 경우
+  if (isDeleted) {
+    div.innerHTML = `
+      <div class="comment-header">
+        <div class="comment-author-info">
+          <div class="comment-author-profile" style="background-color: #dee2e6;">?</div>
+          <div class="comment-author-details">
+            <div class="comment-author-name" style="color: #adb5bd;">삭제된 사용자</div>
+            <div class="comment-meta">
+              <span class="comment-index">#${comment.COMMENT_INDEX}</span>
+              <span>•</span>
+              <span>${comment.CREATED_AT_FORMATTED}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="comment-content" style="color: #adb5bd; font-style: italic;">삭제된 댓글입니다.</div>
+    `;
+  } else {
+    // 정상 댓글
+    div.innerHTML = `
+      <div class="comment-header">
+        <div class="comment-author-info">
+          <div class="comment-author-profile">${authorInitial}</div>
+          <div class="comment-author-details">
+            <div class="comment-author-name">${escapedAuthorName}</div>
+            <div class="comment-meta">
+              <span class="comment-index">#${comment.COMMENT_INDEX}</span>
+              <span>•</span>
+              <span>${comment.CREATED_AT_FORMATTED}</span>
+              ${isEdited ? '<span>• (수정됨)</span>' : ''}
+            </div>
+          </div>
+        </div>
+        <div class="comment-actions">
+          <button class="comment-action-btn edit-btn" data-comment-id="${comment.COMMENT_ID}" data-author-name="${escapedAuthorName}">수정</button>
+          <button class="comment-action-btn delete delete-btn" data-comment-id="${comment.COMMENT_ID}" data-author-name="${escapedAuthorName}">삭제</button>
+        </div>
+      </div>
+      <div class="comment-content" data-original-content="${escapedContent.replace(/"/g, '&quot;')}">${escapedContent}</div>
+    `;
+    
+    // 이벤트 리스너 추가 (정상 댓글에만)
+    div.querySelector('.edit-btn').addEventListener('click', function() {
+      editComment(this.dataset.commentId, this.dataset.authorName);
+    });
+    
+    div.querySelector('.delete-btn').addEventListener('click', function() {
+      deleteComment(this.dataset.commentId, this.dataset.authorName);
+    });
+  }
+  
+  return div;
+}
+
+// 댓글 작성
+async function submitComment() {
+  const authorInput = document.getElementById('commentAuthorInput');
+  const contentTextarea = document.getElementById('commentTextarea');
+  const authorName = authorInput.value.trim();
+  const content = contentTextarea.value.trim();
+  
+  if (!authorName) {
+    alert('작성자 이름을 입력해주세요.');
+    authorInput.focus();
+    return;
+  }
+  
+  if (!content) {
+    alert('댓글 내용을 입력해주세요.');
+    contentTextarea.focus();
+    return;
+  }
+  
+  if (content.length > 1000) {
+    alert('댓글은 최대 1000자까지 작성할 수 있습니다.');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        postType,
+        postId,
+        content,
+        authorName
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert(result.message || '댓글 작성에 실패했습니다.');
+      return;
+    }
+    
+    // 작성자 이름 저장
+    currentUserName = authorName;
+    
+    // 입력 필드 초기화
+    contentTextarea.value = '';
+    document.getElementById('commentCharCount').textContent = '0';
+    
+    // 댓글 목록 새로고침
+    await loadComments();
+    
+    alert('댓글이 작성되었습니다.');
+  } catch (error) {
+    console.error('댓글 작성 오류:', error);
+    alert('댓글 작성 중 오류가 발생했습니다.');
+  }
+}
+
+// 댓글 수정 모드로 전환
+function editComment(commentId, authorName) {
+  // 작성자 확인 (간단한 확인, 추후 인증 시스템으로 보완)
+  const inputName = prompt(`댓글을 수정하시려면 작성자 이름을 입력해주세요:\n\n(힌트: ${authorName})`);
+  
+  if (!inputName) return;
+  
+  if (inputName !== authorName) {
+    alert('작성자 이름이 일치하지 않습니다.');
+    return;
+  }
+  
+  const commentItem = document.querySelector(`[data-comment-id="${commentId}"]`);
+  const contentElement = commentItem.querySelector('.comment-content');
+  const originalContent = contentElement.dataset.originalContent;
+  const actionsElement = commentItem.querySelector('.comment-actions');
+  
+  // HTML 이스케이프 해제
+  const unescapeHtml = (text) => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+  
+  const decodedContent = unescapeHtml(originalContent);
+  
+  // 수정 폼 생성
+  const editForm = document.createElement('div');
+  editForm.className = 'comment-edit-form';
+  
+  const textarea = document.createElement('textarea');
+  textarea.className = 'comment-edit-textarea';
+  textarea.maxLength = 1000;
+  textarea.value = decodedContent;
+  
+  const editActions = document.createElement('div');
+  editActions.className = 'comment-edit-actions';
+  
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'comment-save-btn';
+  saveBtn.textContent = '저장';
+  saveBtn.onclick = () => saveComment(commentId, authorName);
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'comment-cancel-btn';
+  cancelBtn.textContent = '취소';
+  cancelBtn.onclick = () => cancelEdit(commentId);
+  
+  editActions.appendChild(saveBtn);
+  editActions.appendChild(cancelBtn);
+  editForm.appendChild(textarea);
+  editForm.appendChild(editActions);
+  
+  // 기존 내용 숨기고 수정 폼 표시
+  contentElement.style.display = 'none';
+  actionsElement.style.display = 'none';
+  contentElement.parentNode.appendChild(editForm);
+  
+  // 텍스트 영역 포커스
+  textarea.focus();
+}
+
+// 댓글 수정 취소
+function cancelEdit(commentId) {
+  const commentItem = document.querySelector(`[data-comment-id="${commentId}"]`);
+  const contentElement = commentItem.querySelector('.comment-content');
+  const actionsElement = commentItem.querySelector('.comment-actions');
+  const editForm = commentItem.querySelector('.comment-edit-form');
+  
+  contentElement.style.display = 'block';
+  actionsElement.style.display = 'flex';
+  editForm.remove();
+}
+
+// 댓글 저장
+async function saveComment(commentId, authorName) {
+  const commentItem = document.querySelector(`[data-comment-id="${commentId}"]`);
+  const editForm = commentItem.querySelector('.comment-edit-form');
+  const textarea = editForm.querySelector('textarea');
+  const newContent = textarea.value.trim();
+  
+  if (!newContent) {
+    alert('댓글 내용을 입력해주세요.');
+    textarea.focus();
+    return;
+  }
+  
+  if (newContent.length > 1000) {
+    alert('댓글은 최대 1000자까지 작성할 수 있습니다.');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/comments/${commentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        content: newContent,
+        authorName
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert(result.message || '댓글 수정에 실패했습니다.');
+      return;
+    }
+    
+    // 댓글 목록 새로고침
+    await loadComments();
+    
+    alert('댓글이 수정되었습니다.');
+  } catch (error) {
+    console.error('댓글 수정 오류:', error);
+    alert('댓글 수정 중 오류가 발생했습니다.');
+  }
+}
+
+// 댓글 삭제
+async function deleteComment(commentId, authorName) {
+  // 작성자 확인
+  const inputName = prompt(`댓글을 삭제하시려면 작성자 이름을 입력해주세요:\n\n(힌트: ${authorName})`);
+  
+  if (!inputName) return;
+  
+  if (inputName !== authorName) {
+    alert('작성자 이름이 일치하지 않습니다.');
+    return;
+  }
+  
+  if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        authorName
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      alert(result.message || '댓글 삭제에 실패했습니다.');
+      return;
+    }
+    
+    // 댓글 목록 새로고침
+    await loadComments();
+    
+    alert('댓글이 삭제되었습니다.');
+  } catch (error) {
+    console.error('댓글 삭제 오류:', error);
+    alert('댓글 삭제 중 오류가 발생했습니다.');
+  }
+}
+
+// 댓글 글자 수 카운터 업데이트
+function updateCharCount() {
+  const textarea = document.getElementById('commentTextarea');
+  const charCount = document.getElementById('commentCharCount');
+  charCount.textContent = textarea.value.length;
+}
+
 // 페이지 로드 시 게시글 불러오기
-document.addEventListener('DOMContentLoaded', function() {
-  loadPost();
+document.addEventListener('DOMContentLoaded', async function() {
+  await loadPost();
+  
+  // 게시글 로드 후 댓글 섹션 표시 및 댓글 로드
+  document.getElementById('commentsSection').style.display = 'block';
+  await loadComments();
+  
+  // 댓글 작성 버튼 이벤트
+  document.getElementById('commentSubmitBtn').addEventListener('click', submitComment);
+  
+  // 댓글 글자 수 카운터
+  document.getElementById('commentTextarea').addEventListener('input', updateCharCount);
+  
+  // 엔터키로 댓글 작성 (Shift+Enter는 줄바꿈)
+  document.getElementById('commentTextarea').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitComment();
+    }
+  });
   
   // Footer 로드
   fetch('/footer.html')

@@ -4,6 +4,7 @@ const { testConnection } = require('./config/database');
 const recipeRoutes = require('./routes/recipes');
 const tipRoutes = require('./routes/tips');
 const menuRoutes = require('./routes/menus');
+const commentRoutes = require('./routes/comments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'frontend'), {
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/tips', tipRoutes);
 app.use('/api/menus', menuRoutes);
+app.use('/api/comments', commentRoutes);
 
 // 루트 경로는 terms.html로 리다이렉트
 app.get('/', (req, res) => {

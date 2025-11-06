@@ -14,6 +14,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/1-init.sql
+      - ./database/comment_triggers.sql:/docker-entrypoint-initdb.d/2-comment-triggers.sql
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     healthcheck:
