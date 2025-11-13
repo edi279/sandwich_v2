@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net;">
 <title>샌드위치냠냠</title>
+<link rel="stylesheet" href="/assets/css/gnb.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <style>
 body {
@@ -16,48 +17,6 @@ body {
 .main-container {
   display: flex;
   min-height: 100vh;
-}
-
-/* 좌측 LNB (Left Navigation Bar) */
-.lnb {
-  position: fixed;
-  left: 0;
-  top: 0;
-  height: 100vh;
-  width: 80px;
-  background-color: #ffffff;
-  border-right: 1px solid #e9ecef;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 0;
-  gap: 1.5rem;
-  z-index: 100;
-}
-
-.lnb-button {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background-color: #ffe0e6;
-  color: #333;
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.lnb-button:hover {
-  background-color: #ffd1dc;
-  transform: scale(1.05);
-}
-
-.lnb-button.active {
-  background-color: #ffb3c1;
 }
 
 /* 메인 컨텐츠 영역 */
@@ -413,15 +372,8 @@ body {
 </head>
 <body>
 <div class="main-container">
-  <!-- 좌측 LNB -->
-  <nav class="lnb">
-    <button class="lnb-button active" id="recipeBtn" title="이렇게 만들어요">
-      🥪
-    </button>
-    <button class="lnb-button" id="tipBtn" title="정보 공유해요">
-      💡
-    </button>
-  </nav>
+  <!-- 좌측 GNB -->
+  <div id="gnb-root"></div>
 
   <!-- 메인 컨텐츠 -->
   <main class="main-content">
@@ -429,6 +381,9 @@ body {
     <div class="page-header">
       <h1 class="page-title" id="pageTitle">이렇게 만들어요</h1>
     </div>
+
+    <!-- 오류 메시지 영역 -->
+    <div id="boardError" class="alert alert-warning" style="display:none;"></div>
 
     <!-- 게시판 본문 영역 -->
     <div class="board-container">
@@ -481,12 +436,155 @@ body {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="/assets/js/gnb.js"></script>
 <script>
 // 페이지 제목 업데이트 함수
 function updatePageTitle(buttonTitle) {
   const pageTitle = document.getElementById('pageTitle');
   if (pageTitle) {
     pageTitle.textContent = buttonTitle;
+  }
+}
+
+function updateGnbActive(menu) {
+  const nav = document.getElementById('globalGnbNav');
+  if (!nav) return;
+  nav.querySelectorAll('.lnb-button').forEach(btn => btn.classList.remove('active'));
+  if (!menu) return;
+  const target = nav.querySelector(`[data-menu="${menu}"]`);
+  if (target) {
+    target.classList.add('active');
+  }
+}
+
+const BOARD_MENU_ID_MAP = { recipe: '1', tip: '2' };
+const MENU_ID_BOARD_MAP = { '1': 'recipe', '2': 'tip' };
+const boardErrorEl = document.getElementById('boardError');
+const boardContainerEl = document.querySelector('.board-container');
+
+function showBoardError(message) {
+  if (boardErrorEl) {
+    boardErrorEl.textContent = message;
+    boardErrorEl.style.display = 'block';
+  }
+  if (boardContainerEl) {
+    boardContainerEl.style.display = 'none';
+  }
+}
+
+function hideBoardError() {
+  if (boardErrorEl) {
+    boardErrorEl.textContent = '';
+    boardErrorEl.style.display = 'none';
+  }
+  if (boardContainerEl) {
+    boardContainerEl.style.display = '';
+  }
+}
+
+function updateBoardUrl(boardMenuId, categoryMenuId, page) {
+  const params = new URLSearchParams(window.location.search);
+
+  if (boardMenuId) {
+    params.set('board', String(boardMenuId));
+  } else {
+    params.delete('board');
+  }
+
+  if (categoryMenuId) {
+    params.set('category', String(categoryMenuId));
+  } else {
+    params.delete('category');
+  }
+
+  if (page && Number(page) > 1) {
+    params.set('page', String(page));
+  } else {
+    params.delete('page');
+  }
+
+  const newQuery = params.toString();
+  const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}`;
+
+  if (newUrl !== `${window.location.pathname}${window.location.search}`) {
+    history.replaceState(null, '', newUrl);
+  }
+}
+
+function getActiveCategoryId() {
+  const activeBtn = document.querySelector('.category-btn.active');
+  return activeBtn ? activeBtn.dataset.category : null;
+}
+
+function handleCategorySelection(boardType, categoryId, page = 1, { updateUrl = true, showError = true } = {}) {
+  const buttons = document.querySelectorAll('.category-btn');
+  const targetId = String(categoryId);
+  let found = false;
+
+  buttons.forEach(btn => {
+    if (btn.dataset.category === targetId) {
+      btn.classList.add('active');
+      found = true;
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  if (!found) {
+    if (showError) {
+      showBoardError('선택한 카테고리를 찾을 수 없습니다.');
+    }
+    return false;
+  }
+
+  hideBoardError();
+
+  if (boardType === 'recipe') {
+    currentBoardType = 'recipe';
+    currentPageRecipe = page;
+    loadRecipes(targetId, page);
+  } else {
+    currentBoardType = 'tip';
+    currentPage = page;
+    loadTips(targetId, page);
+  }
+
+  if (updateUrl) {
+    const boardMenuId = BOARD_MENU_ID_MAP[boardType] || '1';
+    updateBoardUrl(boardMenuId, targetId, page);
+  }
+
+  return true;
+}
+
+function setupBoardGnb(refs) {
+  if (!refs) return;
+  const { recipeBtn, tipBtn, myInfoBtn } = refs;
+
+  if (recipeBtn) {
+    recipeBtn.addEventListener('click', async () => {
+      hideBoardError();
+      updateGnbActive('recipe');
+      updatePageTitle(recipeBtn.title);
+      currentPageRecipe = 1;
+      await switchBoardType('recipe');
+    });
+  }
+
+  if (tipBtn) {
+    tipBtn.addEventListener('click', async () => {
+      hideBoardError();
+      updateGnbActive('tip');
+      updatePageTitle(tipBtn.title);
+      currentPage = 1;
+      await switchBoardType('tip');
+    });
+  }
+
+  if (myInfoBtn) {
+    myInfoBtn.addEventListener('click', () => {
+      alert('My info 기능은 준비 중입니다.');
+    });
   }
 }
 
@@ -523,14 +621,29 @@ async function loadCategoryFromServer() {
 }
 
 // 카테고리 생성 함수 (통합 - recipe와 tip 모두 처리)
-async function renderCategory(pageId) {
+async function renderCategory(pageId, options = {}) {
+  const {
+    categoryId = null,
+    page = null,
+    skipUrlUpdate = false,
+    suppressError = false
+  } = options;
+
   const categoryButtons = document.getElementById('categoryButtons');
   if (!categoryButtons) return;
 
   // 메뉴 데이터가 없으면 로드
   if (menuData.boards.length === 0) {
-    await loadCategoryFromServer();
+    const loaded = await loadCategoryFromServer();
+    if (!loaded) {
+      if (!suppressError) {
+        showBoardError('메뉴 데이터를 불러올 수 없습니다.');
+      }
+      return false;
+    }
   }
+
+  hideBoardError();
 
   // 페이지 ID에 맞는 카테고리 데이터 가져오기
   let menuItems = [];
@@ -546,6 +659,9 @@ async function renderCategory(pageId) {
   if (menuItems.length === 0) {
     console.warn(`카테고리를 찾을 수 없습니다: ${pageId}`);
     categoryButtons.innerHTML = '<p class="text-muted">카테고리가 없습니다.</p>';
+    if (!suppressError) {
+      showBoardError('선택할 수 있는 카테고리가 없습니다.');
+    }
     return;
   }
   
@@ -553,9 +669,13 @@ async function renderCategory(pageId) {
   categoryButtons.innerHTML = '';
 
   // 카테고리 버튼 동적 생성
+  const desiredCategoryId = categoryId && menuItems.some(cat => String(cat.MENU_ID) === String(categoryId))
+    ? String(categoryId)
+    : null;
+
   menuItems.forEach((item, index) => {
     const button = document.createElement('button');
-    button.className = `category-btn ${index === 0 ? 'active' : ''}`;
+    button.className = 'category-btn';
     
     // MENU_ID를 data-category로 사용 (통일)
     button.setAttribute('data-category', item.MENU_ID);
@@ -564,38 +684,40 @@ async function renderCategory(pageId) {
     
     // 클릭 이벤트 추가
     button.addEventListener('click', function() {
-      document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      
-      const categoryId = this.dataset.category;
-      if (pageId === 'recipe') {
-        loadRecipes(categoryId, 1);
-      } else {
-        loadTips(categoryId, 1);
-      }
+      handleCategorySelection(pageId, this.dataset.category, 1, { updateUrl: true });
     });
     
     categoryButtons.appendChild(button);
   });
   
-  // 생성 후 첫 번째 활성화된 버튼으로 게시글 로드
-  const activeButton = categoryButtons.querySelector('.category-btn.active');
-  if (activeButton) {
-    const categoryId = activeButton.dataset.category;
-    if (pageId === 'recipe') {
-      loadRecipes(categoryId, 1);
-    } else {
-      loadTips(categoryId, 1);
-    }
+  // 기본 선택 처리
+  let initialCategoryId = desiredCategoryId;
+  if (!initialCategoryId) {
+    initialCategoryId = String(menuItems[0].MENU_ID);
   }
+
+  const initialPage = page && !isNaN(parseInt(page)) && parseInt(page) > 0
+    ? parseInt(page)
+    : (pageId === 'recipe' ? currentPageRecipe : currentPage);
+
+  const selectionSuccess = handleCategorySelection(pageId, initialCategoryId, initialPage, {
+    updateUrl: !skipUrlUpdate,
+    showError: !suppressError
+  });
+
+  if (!selectionSuccess && !suppressError) {
+    showBoardError('선택한 카테고리를 찾을 수 없습니다.');
+  }
+
+  return selectionSuccess;
 }
 
 // 게시판 타입에 따라 UI 전환
-function switchBoardType(type) {
+async function switchBoardType(type, options = {}) {
   currentBoardType = type;
   const postGallery = document.getElementById('postGallery');
   const postList = document.getElementById('postList');
-  const paginationContainer = document.getElementById('paginationContainer');
+  const paginationContainerTip = document.getElementById('paginationContainer');
   const paginationContainerRecipe = document.getElementById('paginationContainerRecipe');
   const writeBtn = document.getElementById('writeBtn');
 
@@ -605,49 +727,22 @@ function switchBoardType(type) {
     postGallery.style.display = 'grid';
     postList.classList.remove('show');
     postList.style.display = 'none';
-    paginationContainer.classList.remove('show');
+    paginationContainerTip.classList.remove('show');
     paginationContainerRecipe.classList.add('show');
     writeBtn.style.display = 'flex';
-    
-    // 카테고리 렌더링
-    renderCategory('recipe');
+    return renderCategory('recipe', options);
   } else {
     // 정보 공유 게시판: 리스트형
     postGallery.classList.remove('show');
     postGallery.style.display = 'none';
     postList.classList.add('show');
     postList.style.display = 'block';
-    paginationContainer.classList.add('show');
+    paginationContainerTip.classList.add('show');
     paginationContainerRecipe.classList.remove('show');
     writeBtn.style.display = 'flex';
-    
-    // 카테고리 렌더링 (DB에서 불러올 경우 loadCategoryFromServer 사용)
-    renderCategory('tip');
+    return renderCategory('tip', options);
   }
 }
-
-// LNB 버튼 클릭 처리
-document.getElementById('recipeBtn').addEventListener('click', function() {
-  document.getElementById('recipeBtn').classList.add('active');
-  document.getElementById('tipBtn').classList.remove('active');
-  // 페이지 제목 업데이트
-  updatePageTitle(this.title);
-  // 게시판 타입 전환
-  switchBoardType('recipe');
-  // 레시피 게시글 로드
-  loadPosts('recipe');
-});
-
-document.getElementById('tipBtn').addEventListener('click', function() {
-  document.getElementById('tipBtn').classList.add('active');
-  document.getElementById('recipeBtn').classList.remove('active');
-  // 페이지 제목 업데이트
-  updatePageTitle(this.title);
-  // 게시판 타입 전환
-  switchBoardType('tip');
-  // 정보 공유 게시글 로드
-  loadPosts('tip');
-});
 
 // 카테고리 버튼 클릭 처리는 renderCategory 함수 내에서 처리됨 (통합)
 
@@ -839,11 +934,15 @@ function renderTips(tips) {
 // 게시글 로드 함수
 function loadPosts(type) {
   if (type === 'recipe') {
-    const activeCategory = document.querySelector('.category-btn.active')?.dataset.category;
-    loadRecipes(activeCategory || null, currentPageRecipe);
+    const activeCategory = getActiveCategoryId();
+    if (activeCategory) {
+      handleCategorySelection('recipe', activeCategory, currentPageRecipe, { updateUrl: true, showError: false });
+    }
   } else if (type === 'tip') {
-    const activeCategory = document.querySelector('.category-btn.active')?.dataset.category;
-    loadTips(activeCategory || null, currentPage);
+    const activeCategory = getActiveCategoryId();
+    if (activeCategory) {
+      handleCategorySelection('tip', activeCategory, currentPage, { updateUrl: true, showError: false });
+    }
   }
 }
 
@@ -877,6 +976,8 @@ function initPagination() {
       currentPage--;
       loadTips(document.querySelector('.category-btn.active')?.dataset.category || null, currentPage);
       updatePagination();
+      const activeCategory = getActiveCategoryId();
+      updateBoardUrl(BOARD_MENU_ID_MAP.tip, activeCategory, currentPage);
     }
   });
 
@@ -885,6 +986,8 @@ function initPagination() {
       currentPage++;
       loadTips(document.querySelector('.category-btn.active')?.dataset.category || null, currentPage);
       updatePagination();
+      const activeCategory = getActiveCategoryId();
+      updateBoardUrl(BOARD_MENU_ID_MAP.tip, activeCategory, currentPage);
     }
   });
 
@@ -895,6 +998,8 @@ function initPagination() {
         currentPage = parseInt(this.textContent);
         loadTips(document.querySelector('.category-btn.active')?.dataset.category || null, currentPage);
         updatePagination();
+        const activeCategory = getActiveCategoryId();
+        updateBoardUrl(BOARD_MENU_ID_MAP.tip, activeCategory, currentPage);
       }
     });
   });
@@ -911,6 +1016,8 @@ function initPagination() {
       currentPageRecipe--;
       loadRecipes(document.querySelector('.category-btn.active')?.dataset.category || null, currentPageRecipe);
       updatePaginationRecipe();
+      const activeCategory = getActiveCategoryId();
+      updateBoardUrl(BOARD_MENU_ID_MAP.recipe, activeCategory, currentPageRecipe);
     }
   });
 
@@ -919,6 +1026,8 @@ function initPagination() {
       currentPageRecipe++;
       loadRecipes(document.querySelector('.category-btn.active')?.dataset.category || null, currentPageRecipe);
       updatePaginationRecipe();
+      const activeCategory = getActiveCategoryId();
+      updateBoardUrl(BOARD_MENU_ID_MAP.recipe, activeCategory, currentPageRecipe);
     }
   });
 
@@ -929,6 +1038,8 @@ function initPagination() {
         currentPageRecipe = parseInt(this.textContent);
         loadRecipes(document.querySelector('.category-btn.active')?.dataset.category || null, currentPageRecipe);
         updatePaginationRecipe();
+        const activeCategory = getActiveCategoryId();
+        updateBoardUrl(BOARD_MENU_ID_MAP.recipe, activeCategory, currentPageRecipe);
       }
     });
   });
@@ -1014,79 +1125,70 @@ function updatePaginationRecipe() {
 
 // 초기 페이지 제목 설정
 document.addEventListener('DOMContentLoaded', async function() {
-  // URL 파라미터 읽기
   const urlParams = new URLSearchParams(window.location.search);
   const boardParam = urlParams.get('board');
   const categoryParam = urlParams.get('category');
-  const pageParam = urlParams.get('page'); // 페이지 파라미터 추가
-  
-  let boardType = 'recipe'; // 기본값
-  
-  // URL 파라미터로 게시판 타입 결정
+  const pageParam = urlParams.get('page');
+
+  let boardMenuId = '1'; // 기본: 이렇게 만들어요
+  let boardType = 'recipe';
+  let requestedPage = null;
+
   if (boardParam) {
-    if (boardParam === '1') {
-      boardType = 'recipe';
-      document.getElementById('recipeBtn').classList.add('active');
-      document.getElementById('tipBtn').classList.remove('active');
-      updatePageTitle('이렇게 만들어요');
-      // 페이지 파라미터가 있으면 설정
-      if (pageParam) {
-        const pageNum = parseInt(pageParam);
-        if (!isNaN(pageNum) && pageNum > 0) {
-          currentPageRecipe = pageNum;
-        }
-      }
-    } else if (boardParam === '2') {
-      boardType = 'tip';
-      document.getElementById('tipBtn').classList.add('active');
-      document.getElementById('recipeBtn').classList.remove('active');
-      updatePageTitle('정보 공유해요');
-      // 페이지 파라미터가 있으면 설정
-      if (pageParam) {
-        const pageNum = parseInt(pageParam);
-        if (!isNaN(pageNum) && pageNum > 0) {
-          currentPage = pageNum;
-        }
-      }
-    }
-  } else {
-    // 파라미터가 없으면 현재 활성화된 버튼으로 결정
-    const activeBtn = document.querySelector('.lnb-button.active');
-    if (activeBtn) {
-      updatePageTitle(activeBtn.title);
-      boardType = activeBtn.id === 'recipeBtn' ? 'recipe' : 'tip';
+    if (MENU_ID_BOARD_MAP[boardParam]) {
+      boardMenuId = boardParam;
+      boardType = MENU_ID_BOARD_MAP[boardParam];
+    } else {
+      updatePageTitle('존재하지 않는 게시판입니다');
+      await Gnb.render({
+        containerId: 'gnb-root',
+        activeMenu: 'recipe',
+        onReady: setupBoardGnb
+      });
+      updateGnbActive(null);
+      showBoardError('요청하신 게시판을 찾을 수 없습니다.');
+      return;
     }
   }
-  
-  // 게시판 타입 전환
-  switchBoardType(boardType);
-  
-  // 카테고리 렌더링 및 활성화
-  await renderCategory(boardType);
-  
-  // URL 파라미터로 특정 카테고리 활성화
-  if (categoryParam) {
-    const categoryButtons = document.querySelectorAll('.category-btn');
-    categoryButtons.forEach(btn => {
-      if (btn.dataset.category === categoryParam) {
-        // 모든 버튼 비활성화
-        categoryButtons.forEach(b => b.classList.remove('active'));
-        // 해당 버튼 활성화
-        btn.classList.add('active');
-        // 게시글 로드 (페이지 파라미터도 함께 전달)
-        if (boardType === 'recipe') {
-          loadRecipes(categoryParam, currentPageRecipe);
-        } else {
-          loadTips(categoryParam, currentPage);
-        }
+
+  if (pageParam) {
+    const pageNum = parseInt(pageParam, 10);
+    if (!isNaN(pageNum) && pageNum > 0) {
+      requestedPage = pageNum;
+      if (boardType === 'recipe') {
+        currentPageRecipe = pageNum;
+      } else {
+        currentPage = pageNum;
       }
-    });
-  } else {
-    // 파라미터가 없으면 기본 게시글 로드
-    loadPosts(boardType);
+    }
   }
-  
-  // 페이지네이션 초기화
+
+  await Gnb.render({
+    containerId: 'gnb-root',
+    activeMenu: boardType === 'recipe' ? 'recipe' : 'tip',
+    onReady: setupBoardGnb
+  });
+
+  updateGnbActive(boardType === 'recipe' ? 'recipe' : 'tip');
+  updatePageTitle(boardType === 'recipe' ? '이렇게 만들어요' : '정보 공유해요');
+
+  const renderResult = await switchBoardType(boardType, {
+    categoryId: categoryParam,
+    page: requestedPage || 1,
+    skipUrlUpdate: Boolean(categoryParam || pageParam)
+  });
+
+  if (renderResult === false) {
+    // renderCategory가 실패한 경우 (예: 잘못된 카테고리)
+    if (categoryParam) {
+      showBoardError('요청하신 카테고리를 찾을 수 없습니다.');
+      return;
+    }
+  }
+
+  const activeCategory = getActiveCategoryId();
+  updateBoardUrl(boardMenuId, activeCategory, boardType === 'recipe' ? currentPageRecipe : currentPage);
+
   initPagination();
   updatePagination();
   updatePaginationRecipe();

@@ -43,3 +43,6 @@ build/
 # Security sensitive files
 change_mysql_password.sh
 AWS_SECURITY_GROUP_SETUP.md
+
+# Uploaded media
+uploads/

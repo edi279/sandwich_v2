@@ -6,6 +6,7 @@ const tipRoutes = require('./routes/tips');
 const menuRoutes = require('./routes/menus');
 const commentRoutes = require('./routes/comments');
 const uploadRoutes = require('./routes/upload');
+const homeRoutes = require('./routes/home');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,14 +38,15 @@ app.use('/api/tips', tipRoutes);
 app.use('/api/menus', menuRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/home', homeRoutes);
 
-// 루트 경로는 terms.html로 리다이렉트
+// 루트 경로는 home.html로 이동
 app.get('/', (req, res) => {
   // 캐시 방지 헤더 추가
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  res.sendFile(path.join(__dirname, 'frontend', 'terms.html'));
+  res.redirect('/home.html');
 });
 
 // 모든 라우트에서 HTML 파일 제공
@@ -81,6 +83,7 @@ async function startServer() {
     console.log(`  - 레시피 목록: GET http://localhost:${PORT}/api/recipes`);
     console.log(`  - 정보 공유 목록: GET http://localhost:${PORT}/api/tips`);
     console.log(`  - 메뉴 목록: GET http://localhost:${PORT}/api/menus`);
+    console.log(`  - 홈 데이터: GET http://localhost:${PORT}/api/home`);
   });
 }
 

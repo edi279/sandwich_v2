@@ -1,0 +1,94 @@
+/* GNB 공통 스타일 */
+.lnb {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 80px;
+  background-color: #ffffff;
+  border-right: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+  gap: 1.5rem;
+  z-index: 120;
+}
+
+.lnb-top,
+.lnb-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.lnb-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #ffeef3;
+  color: #ff6b9d;
+  font-weight: 700;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(255, 107, 157, 0.2);
+}
+
+.lnb-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ffe0e6;
+  color: #ffffff;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.lnb-button:hover {
+  background-color: #ffd1dc;
+  transform: translateY(-2px);
+}
+
+.lnb-button.active {
+  background-color: #ffb3c1;
+  transform: translateY(-2px);
+}
+
+.lnb-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.lnb-divider {
+  width: 32px;
+  height: 1px;
+  background-color: rgba(255, 107, 157, 0.25);
+}
+
+@media (max-width: 768px) {
+  .lnb {
+    width: 64px;
+    padding: 1.5rem 0;
+  }
+
+  .lnb-logo,
+  .lnb-button {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+}
+

@@ -178,7 +178,7 @@ router.post('/', async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { title, content, subcategory, tags, authorName } = req.body;
+    const { title, content, subcategory, tags, authorName, thumbnailUrl } = req.body;
     
     // 입력값 검증
     if (!title || !content) {
@@ -194,14 +194,30 @@ router.post('/', async (req, res) => {
         message: '카테고리를 선택해주세요.'
       });
     }
+
+    const normalizedThumbnailUrl = (thumbnailUrl || '').trim();
+
+    if (!normalizedThumbnailUrl) {
+      return res.status(400).json({
+        success: false,
+        message: '대표 이미지를 선택해주세요.'
+      });
+    }
+
+    if (!normalizedThumbnailUrl.startsWith('/uploads/')) {
+      return res.status(400).json({
+        success: false,
+        message: '유효한 대표 이미지 경로가 아닙니다.'
+      });
+    }
     
     // MENU_ID를 직접 CATEGORY로 사용 (정수형)
     const categoryId = parseInt(subcategory);
     
     // RECIPE_TB에 게시글 삽입
     const [result] = await connection.execute(
-      'INSERT INTO RECIPE_TB (TITLE, AUTHOR_NAME, CATEGORY) VALUES (?, ?, ?)',
-      [title, authorName || '익명', categoryId]
+      'INSERT INTO RECIPE_TB (TITLE, AUTHOR_NAME, CATEGORY, IMAGE_URL) VALUES (?, ?, ?, ?)',
+      [title, authorName || '익명', categoryId, normalizedThumbnailUrl]
     );
     
     const recipeId = result.insertId;
@@ -219,7 +235,8 @@ router.post('/', async (req, res) => {
       message: '게시글이 작성되었습니다.',
       data: {
         recipeId,
-        categoryId
+        categoryId,
+        thumbnailUrl: normalizedThumbnailUrl
       }
     });
   } catch (error) {
@@ -242,7 +259,7 @@ router.put('/:id', async (req, res) => {
     await connection.beginTransaction();
     
     const { id } = req.params;
-    const { title, content, subcategory, tags, authorName } = req.body;
+    const { title, content, subcategory, tags, authorName, thumbnailUrl } = req.body;
     
     // 입력값 검증
     if (!title || !content) {
@@ -256,6 +273,22 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: '카테고리를 선택해주세요.'
+      });
+    }
+
+    const normalizedThumbnailUrl = (thumbnailUrl || '').trim();
+
+    if (!normalizedThumbnailUrl) {
+      return res.status(400).json({
+        success: false,
+        message: '대표 이미지를 선택해주세요.'
+      });
+    }
+
+    if (!normalizedThumbnailUrl.startsWith('/uploads/')) {
+      return res.status(400).json({
+        success: false,
+        message: '유효한 대표 이미지 경로가 아닙니다.'
       });
     }
     
@@ -276,8 +309,8 @@ router.put('/:id', async (req, res) => {
     
     // RECIPE_TB 업데이트
     await connection.execute(
-      'UPDATE RECIPE_TB SET TITLE = ?, AUTHOR_NAME = ?, CATEGORY = ? WHERE RECIPE_ID = ?',
-      [title, authorName || '익명', categoryId, id]
+      'UPDATE RECIPE_TB SET TITLE = ?, AUTHOR_NAME = ?, CATEGORY = ?, IMAGE_URL = ? WHERE RECIPE_ID = ?',
+      [title, authorName || '익명', categoryId, normalizedThumbnailUrl, id]
     );
     
     // RECIPE_CONTENT_TB 업데이트 (존재하면 업데이트, 없으면 INSERT)
@@ -305,7 +338,8 @@ router.put('/:id', async (req, res) => {
       message: '게시글이 수정되었습니다.',
       data: {
         recipeId: id,
-        categoryId
+        categoryId,
+        thumbnailUrl: normalizedThumbnailUrl
       }
     });
   } catch (error) {
