@@ -457,6 +457,29 @@ function updateGnbActive(menu) {
   }
 }
 
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem('sandwichUser');
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn('저장된 사용자 정보를 불러오지 못했습니다.', error);
+    return null;
+  }
+}
+
+function applyMyInfoVisibility(refs) {
+  if (!refs || !refs.myInfoBtn) return;
+  const isLoggedIn = !!getStoredUser();
+  refs.myInfoBtn.style.display = isLoggedIn ? 'flex' : 'none';
+}
+
+function applyWriteButtonVisibility() {
+  const writeBtn = document.getElementById('writeBtn');
+  if (!writeBtn) return;
+  const isLoggedIn = !!getStoredUser();
+  writeBtn.style.display = isLoggedIn ? 'flex' : 'none';
+}
+
 const BOARD_MENU_ID_MAP = { recipe: '1', tip: '2' };
 const MENU_ID_BOARD_MAP = { '1': 'recipe', '2': 'tip' };
 const boardErrorEl = document.getElementById('boardError');
@@ -559,7 +582,9 @@ function handleCategorySelection(boardType, categoryId, page = 1, { updateUrl = 
 
 function setupBoardGnb(refs) {
   if (!refs) return;
-  const { recipeBtn, tipBtn, myInfoBtn } = refs;
+  const { recipeBtn, tipBtn } = refs;
+
+  applyMyInfoVisibility(refs);
 
   if (recipeBtn) {
     recipeBtn.addEventListener('click', async () => {
@@ -578,12 +603,6 @@ function setupBoardGnb(refs) {
       updatePageTitle(tipBtn.title);
       currentPage = 1;
       await switchBoardType('tip');
-    });
-  }
-
-  if (myInfoBtn) {
-    myInfoBtn.addEventListener('click', () => {
-      alert('My info 기능은 준비 중입니다.');
     });
   }
 }
@@ -729,7 +748,7 @@ async function switchBoardType(type, options = {}) {
     postList.style.display = 'none';
     paginationContainerTip.classList.remove('show');
     paginationContainerRecipe.classList.add('show');
-    writeBtn.style.display = 'flex';
+    applyWriteButtonVisibility();
     return renderCategory('recipe', options);
   } else {
     // 정보 공유 게시판: 리스트형
@@ -739,7 +758,7 @@ async function switchBoardType(type, options = {}) {
     postList.style.display = 'block';
     paginationContainerTip.classList.add('show');
     paginationContainerRecipe.classList.remove('show');
-    writeBtn.style.display = 'flex';
+    applyWriteButtonVisibility();
     return renderCategory('tip', options);
   }
 }
@@ -1129,6 +1148,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   const boardParam = urlParams.get('board');
   const categoryParam = urlParams.get('category');
   const pageParam = urlParams.get('page');
+  const currentUser = getStoredUser();
+  let gnbRefs = null;
 
   let boardMenuId = '1'; // 기본: 이렇게 만들어요
   let boardType = 'recipe';
@@ -1143,10 +1164,22 @@ document.addEventListener('DOMContentLoaded', async function() {
       await Gnb.render({
         containerId: 'gnb-root',
         activeMenu: 'recipe',
-        onReady: setupBoardGnb
+        showMyInfo: !!currentUser,
+        onReady: (refs) => {
+          gnbRefs = refs;
+          setupBoardGnb(refs);
+        }
       });
+      applyMyInfoVisibility(gnbRefs);
+      applyWriteButtonVisibility();
       updateGnbActive(null);
       showBoardError('요청하신 게시판을 찾을 수 없습니다.');
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'sandwichUser') {
+          applyMyInfoVisibility(gnbRefs);
+          applyWriteButtonVisibility();
+        }
+      });
       return;
     }
   }
@@ -1166,8 +1199,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Gnb.render({
     containerId: 'gnb-root',
     activeMenu: boardType === 'recipe' ? 'recipe' : 'tip',
-    onReady: setupBoardGnb
+    showMyInfo: !!currentUser,
+    onReady: (refs) => {
+      gnbRefs = refs;
+      setupBoardGnb(refs);
+    }
   });
+  applyMyInfoVisibility(gnbRefs);
+  applyWriteButtonVisibility();
 
   updateGnbActive(boardType === 'recipe' ? 'recipe' : 'tip');
   updatePageTitle(boardType === 'recipe' ? '이렇게 만들어요' : '정보 공유해요');
@@ -1192,6 +1231,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   initPagination();
   updatePagination();
   updatePaginationRecipe();
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'sandwichUser') {
+      applyMyInfoVisibility(gnbRefs);
+      applyWriteButtonVisibility();
+    }
+  });
 });
 
 // Footer 로드

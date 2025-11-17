@@ -7,6 +7,8 @@ const menuRoutes = require('./routes/menus');
 const commentRoutes = require('./routes/comments');
 const uploadRoutes = require('./routes/upload');
 const homeRoutes = require('./routes/home');
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +41,21 @@ app.use('/api/menus', menuRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/home', homeRoutes);
+app.use('/api/auth', authRoutes);
+
+// 디버깅용 요청 로거 (프로필 수정 API)
+app.use('/api/user/profile', (req, res, next) => {
+  console.log('[프로필 수정 요청 로거]', {
+    method: req.method,
+    url: req.url,
+    contentType: req.headers['content-type'],
+    body: req.body,
+    bodyKeys: req.body ? Object.keys(req.body) : []
+  });
+  next();
+});
+
+app.use('/api/user', userRoutes);
 
 // 루트 경로는 home.html로 이동
 app.get('/', (req, res) => {

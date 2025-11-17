@@ -697,7 +697,7 @@ const EditorManager = {
     const title = this.titleElement.value.trim() || '(제목 없음)';
     let content = this.contentElement.innerHTML;
     let sanitizedContent = '';
-
+    
     if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
       sanitizedContent = '';
     } else {
@@ -736,12 +736,12 @@ const EditorManager = {
         previewThumbnailEl.style.display = 'none';
       }
     }
-
+    
     document.getElementById('previewTitle').textContent = SecurityUtils.escapeHtml(title);
     document.getElementById('previewContent').innerHTML = sanitizedContent || '<p class="text-muted">(내용 없음)</p>';
     document.getElementById('previewCategory').textContent = category;
     document.getElementById('previewTags').textContent = tags;
-
+    
     previewModal.show();
   },
   
@@ -779,8 +779,8 @@ const EditorManager = {
     const boardId = document.getElementById('postCategory').value;
     if (!boardId) {
       alert('게시판을 선택해주세요.');
-      return;
-    }
+        return;
+      }
     
     // 하위 카테고리 검증 (필수)
     const subcategory = document.getElementById('postSubCategory').value;
@@ -803,11 +803,16 @@ const EditorManager = {
     const postType = urlParams.get('postType');
     const isEditMode = postId && postType;
     
-    // 작성자 이름 입력 (수정 모드에서도)
-    const authorName = prompt('작성자 이름을 입력하세요:', '익명');
-    if (!authorName) {
+    // 로그인한 사용자 정보 가져오기
+    const user = getStoredUser();
+    if (!user || !user.userId) {
+      alert('로그인이 필요합니다. 다시 로그인해주세요.');
+      window.location.href = '/login.html';
       return;
     }
+    
+    const authorName = user.nickname || user.email?.split('@')[0] || '익명';
+    const userId = user.userId;
     
     // 폼 데이터 준비
     const postData = {
@@ -816,6 +821,7 @@ const EditorManager = {
       subcategory: subcategory,
       tags: document.getElementById('postTags').value || '',
       authorName: authorName,
+      userId: userId,
       thumbnailUrl: boardId === '1' ? thumbnailUrlValue : ''
     };
     
@@ -857,7 +863,7 @@ const EditorManager = {
         
         // 모달 닫기 (있는 경우)
         if (typeof previewModal !== 'undefined' && previewModal) {
-          previewModal.hide();
+    previewModal.hide();
         }
         
         if (isEditMode) {
@@ -886,8 +892,34 @@ const EditorManager = {
   }
 };
 
+// 로그인 체크 함수
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem('sandwichUser');
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn('저장된 사용자 정보를 불러오지 못했습니다.', error);
+    return null;
+  }
+}
+
+function checkLogin() {
+  const user = getStoredUser();
+  if (!user || !user.userId) {
+    alert('게시글을 작성하려면 로그인이 필요합니다.');
+    window.location.href = '/login.html';
+    return false;
+  }
+  return true;
+}
+
 // 초기화
 document.addEventListener('DOMContentLoaded', () => {
+  // 로그인 체크
+  if (!checkLogin()) {
+    return;
+  }
+  
   EditorManager.init();
   
   // Footer 로드
@@ -1223,17 +1255,17 @@ document.addEventListener('DOMContentLoaded', () => {
       setDropdownsFromUrl();
     } else {
       // 임시 저장 데이터 복원 (URL 파라미터가 없을 때만)
-      const savedDraft = localStorage.getItem('draft_post');
-      if (savedDraft) {
-        try {
-          const draft = JSON.parse(savedDraft);
-          if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
-            EditorManager.titleElement.value = draft.title || '';
-            EditorManager.contentElement.innerHTML = draft.content || '';
-            if (draft.category) {
+  const savedDraft = localStorage.getItem('draft_post');
+  if (savedDraft) {
+    try {
+      const draft = JSON.parse(savedDraft);
+      if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
+        EditorManager.titleElement.value = draft.title || '';
+        EditorManager.contentElement.innerHTML = draft.content || '';
+        if (draft.category) {
               // 메뉴 로드 완료 후 복원
               setTimeout(() => {
-                document.getElementById('postCategory').value = draft.category;
+          document.getElementById('postCategory').value = draft.category;
                 updateThumbnailVisibility(draft.category);
                 // 카테고리 변경 이벤트 트리거하여 소메뉴 업데이트
                 categorySelect.dispatchEvent(new Event('change'));
@@ -1251,20 +1283,20 @@ document.addEventListener('DOMContentLoaded', () => {
                   clearThumbnailSelection();
                 }
               }, 300);
-            }
-            if (draft.tags) {
-              const tags = draft.tags.split(',');
-              tags.forEach(tag => {
-                document.getElementById('tagInput').value = tag;
-                document.getElementById('tagInput').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-              });
-            }
-          }
-        } catch (e) {
-          console.error('임시 저장 데이터 복원 실패:', e);
+        }
+        if (draft.tags) {
+          const tags = draft.tags.split(',');
+          tags.forEach(tag => {
+            document.getElementById('tagInput').value = tag;
+            document.getElementById('tagInput').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+          });
         }
       }
+    } catch (e) {
+      console.error('임시 저장 데이터 복원 실패:', e);
+        }
     }
+  }
   });
 });
 

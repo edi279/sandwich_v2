@@ -1,5 +1,60 @@
 (function (global) {
+  function getUserInfo() {
+    try {
+      const userStr = localStorage.getItem('sandwichUser');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function createProfileMenu(user) {
+    if (!user) return '';
+    
+    const email = user.email || '';
+    const nickname = user.nickname || '';
+    const displayName = nickname || email.split('@')[0] || '사용자';
+    
+    return `
+      <div class="profile-menu" id="profileMenu">
+        <div class="profile-menu-header">${email}</div>
+        <button class="profile-menu-item" data-action="my-info">
+          <span class="profile-menu-item-icon">👤</span>
+          <span class="profile-menu-item-text">내 정보</span>
+          <span class="profile-menu-item-arrow">›</span>
+        </button>
+        <button class="profile-menu-item" data-action="my-activity">
+          <span class="profile-menu-item-icon">📊</span>
+          <span class="profile-menu-item-text">나의 활동</span>
+          <span class="profile-menu-item-arrow">›</span>
+        </button>
+        <div class="profile-menu-divider"></div>
+        <button class="profile-menu-item logout" data-action="logout">
+          <span class="profile-menu-item-icon">🚪</span>
+          <span class="profile-menu-item-text">로그아웃</span>
+        </button>
+      </div>
+    `;
+  }
+
   function createTemplate() {
+    const user = getUserInfo();
+    const showProfile = !!user;
+    
+    // 프로필 이미지 또는 아이콘 생성
+    let profileContent = '';
+    if (showProfile) {
+      const profileImageUrl = user.profileImageUrl || null;
+      const displayName = user.nickname || user.email || '사용자';
+      const defaultIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16" style="color: #ffffff;"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/></svg>`;
+      
+      if (profileImageUrl) {
+        profileContent = `<img src="${profileImageUrl}" alt="${displayName}" class="lnb-profile-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span class="lnb-profile-icon" style="display:none;">${defaultIcon}</span>`;
+      } else {
+        profileContent = `<span class="lnb-profile-icon">${defaultIcon}</span>`;
+      }
+    }
+    
     return `
       <nav class="lnb" id="globalGnbNav" aria-label="글로벌 내비게이션">
         <div class="lnb-top">
@@ -8,8 +63,12 @@
           <button class="lnb-button" id="tipBtn" data-menu="tip" title="정보 공유해요">💡</button>
         </div>
         <div class="lnb-bottom">
-          <div class="lnb-divider" aria-hidden="true"></div>
-          <button class="lnb-button" id="myInfoBtn" data-menu="my-info" title="My info (준비 중)">🙂</button>
+          ${showProfile ? `
+            <div class="lnb-profile-wrapper">
+              <button class="lnb-button lnb-profile-button" id="myInfoBtn" data-menu="my-info" title="내 프로필">${profileContent}</button>
+              ${createProfileMenu(user)}
+            </div>
+          ` : ''}
         </div>
       </nav>
     `;
@@ -23,10 +82,77 @@
     target.classList.add('active');
   }
 
+  function setupProfileMenu(navElement) {
+    const profileBtn = navElement.querySelector('#myInfoBtn');
+    const profileMenu = navElement.querySelector('#profileMenu');
+    
+    if (!profileBtn || !profileMenu) return;
+
+    // 프로필 버튼 클릭 시 메뉴 토글
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isShowing = profileMenu.classList.contains('show');
+      
+      // 다른 메뉴 닫기
+      document.querySelectorAll('.profile-menu.show').forEach(menu => {
+        if (menu !== profileMenu) {
+          menu.classList.remove('show');
+        }
+      });
+      
+      profileMenu.classList.toggle('show', !isShowing);
+    });
+
+    // 메뉴 항목 클릭 처리
+    profileMenu.querySelectorAll('[data-action]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        
+        if (action === 'logout') {
+          localStorage.removeItem('sandwichUser');
+          window.location.href = '/home.html';
+        } else if (action === 'my-info') {
+          window.location.href = '/my-info.html';
+          profileMenu.classList.remove('show');
+        } else if (action === 'my-activity') {
+          window.location.href = '/my-activity.html';
+          profileMenu.classList.remove('show');
+        }
+      });
+    });
+
+    // 외부 클릭 시 메뉴 닫기
+    document.addEventListener('click', (e) => {
+      if (!navElement.contains(e.target)) {
+        profileMenu.classList.remove('show');
+      }
+    });
+  }
+
+  function updateProfileImage() {
+    const user = getUserInfo();
+    if (!user) return;
+    
+    const profileBtn = document.getElementById('myInfoBtn');
+    if (!profileBtn) return;
+    
+    const profileImageUrl = user.profileImageUrl || null;
+    const displayName = user.nickname || user.email || '사용자';
+    const defaultIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16" style="color: #ffffff;"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/></svg>`;
+    
+    if (profileImageUrl) {
+      profileBtn.innerHTML = `<img src="${profileImageUrl}" alt="${displayName}" class="lnb-profile-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span class="lnb-profile-icon" style="display:none;">${defaultIcon}</span>`;
+    } else {
+      profileBtn.innerHTML = `<span class="lnb-profile-icon">${defaultIcon}</span>`;
+    }
+  }
+
   function renderGnb(options = {}) {
     const {
       containerId = 'gnb-root',
       activeMenu = null,
+      showMyInfo = true,
       onReady = null,
     } = options;
 
@@ -40,6 +166,21 @@
 
     const navElement = container.querySelector('#globalGnbNav');
     setActive(navElement, activeMenu);
+
+    // 프로필 메뉴가 있으면 설정
+    setupProfileMenu(navElement);
+
+    if (!showMyInfo) {
+      const profileWrapper = navElement.querySelector('.lnb-profile-wrapper');
+      if (profileWrapper) {
+        profileWrapper.style.display = 'none';
+      }
+    }
+
+    // localStorage 변경 감지하여 프로필 이미지 업데이트
+    window.addEventListener('storage', () => {
+      updateProfileImage();
+    });
 
     if (typeof onReady === 'function') {
       onReady({
@@ -55,6 +196,7 @@
 
   global.Gnb = {
     render: renderGnb,
+    updateProfileImage: updateProfileImage,
   };
 })(window);
 

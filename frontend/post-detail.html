@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;">
 <title>게시글 상세 - 샌드위치냠냠</title>
+<link rel="stylesheet" href="/assets/css/gnb.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <style>
 body {
@@ -16,48 +17,6 @@ body {
 .main-container {
   display: flex;
   min-height: 100vh;
-}
-
-/* 좌측 LNB (Left Navigation Bar) */
-.lnb {
-  position: fixed;
-  left: 0;
-  top: 0;
-  height: 100vh;
-  width: 80px;
-  background-color: #ffffff;
-  border-right: 1px solid #e9ecef;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 0;
-  gap: 1.5rem;
-  z-index: 100;
-}
-
-.lnb-button {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background-color: #ffe0e6;
-  color: #333;
-  font-size: 1.3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.lnb-button:hover {
-  background-color: #ffd1dc;
-  transform: scale(1.05);
-}
-
-.lnb-button.active {
-  background-color: #ffb3c1;
 }
 
 /* 메인 컨텐츠 영역 */
@@ -261,19 +220,8 @@ body {
 
 /* 반응형 */
 @media (max-width: 768px) {
-  .lnb {
-    width: 60px;
-    padding: 1rem 0;
-  }
-
-  .lnb-button {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
-  }
-
   .main-content {
-    margin-left: 60px;
+    margin-left: 64px;
     padding: 1rem;
   }
 
@@ -342,6 +290,9 @@ body {
   padding: 1.5rem;
   background-color: #f8f9fa;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .comment-form-header {
@@ -371,6 +322,7 @@ body {
 }
 
 .comment-textarea {
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid #dee2e6;
   border-radius: 6px;
@@ -380,6 +332,7 @@ body {
   min-height: 100px;
   font-family: inherit;
   transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .comment-textarea:focus {
@@ -614,15 +567,8 @@ body {
 </head>
 <body>
 <div class="main-container">
-  <!-- 좌측 LNB -->
-  <nav class="lnb">
-    <button class="lnb-button" id="recipeBtn" title="이렇게 만들어요" onclick="window.location.href='/board.html?board=1'">
-      🥪
-    </button>
-    <button class="lnb-button" id="tipBtn" title="정보 공유해요" onclick="window.location.href='/board.html?board=2'">
-      💡
-    </button>
-  </nav>
+  <!-- GNB (Global Navigation Bar) -->
+  <div id="gnb-root"></div>
 
   <!-- 메인 컨텐츠 -->
   <main class="main-content">
@@ -685,29 +631,33 @@ body {
         댓글<span class="comments-count" id="commentsCount">(0)</span>
       </div>
 
-      <!-- 댓글 작성 폼 -->
-      <div class="comment-form">
-        <div class="comment-form-header">댓글 작성</div>
-        <div class="comment-input-group">
-          <input 
-            type="text" 
-            class="comment-author-input" 
-            id="commentAuthorInput" 
-            placeholder="작성자 이름" 
-            maxlength="50"
+      <!-- 댓글 작성 폼 (로그인 사용자만) -->
+      <div class="comment-form" id="commentForm" style="display: none;">
+        <textarea 
+          class="comment-textarea" 
+          id="commentTextarea" 
+          placeholder="댓글을 입력하세요 (최대 1000자)" 
+          maxlength="1000"
+        ></textarea>
+        <div class="comment-form-footer">
+          <span class="comment-char-count">
+            <span id="commentCharCount">0</span> / 1000
+          </span>
+          <button class="comment-submit-btn" id="commentSubmitBtn">댓글 작성</button>
+        </div>
+      </div>
+
+      <!-- 로그인 안내 (비로그인 사용자) -->
+      <div class="comment-login-notice" id="commentLoginNotice" style="display: none;">
+        <div style="text-align: center; padding: 2rem; background-color: #f8f9fa; border-radius: 8px;">
+          <p style="margin-bottom: 1rem; color: #6c757d;">댓글을 작성하려면 로그인이 필요합니다.</p>
+          <button 
+            class="btn btn-primary" 
+            onclick="window.location.href='/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search)"
+            style="padding: 0.6rem 1.5rem;"
           >
-          <textarea 
-            class="comment-textarea" 
-            id="commentTextarea" 
-            placeholder="댓글을 입력하세요 (최대 1000자)" 
-            maxlength="1000"
-          ></textarea>
-          <div class="comment-form-footer">
-            <span class="comment-char-count">
-              <span id="commentCharCount">0</span> / 1000
-            </span>
-            <button class="comment-submit-btn" id="commentSubmitBtn">댓글 작성</button>
-          </div>
+            로그인하러 가기
+          </button>
         </div>
       </div>
 
@@ -723,6 +673,7 @@ body {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="/assets/js/gnb.js"></script>
 <script>
 // URL 파라미터에서 type(MENU_ID)과 id 가져오기
 const urlParams = new URLSearchParams(window.location.search);
@@ -902,7 +853,22 @@ function showError(message) {
 // ============================================================
 // 댓글 관련 함수들
 // ============================================================
-let currentUserName = ''; // 현재 사용자 이름 저장 (작성자 확인용)
+let currentUser = null; // 현재 로그인한 사용자 정보
+
+// 사용자 로그인 상태 확인 및 정보 가져오기
+function checkLoginStatus() {
+  try {
+    const userDataStr = localStorage.getItem('sandwichUser');
+    if (userDataStr) {
+      currentUser = JSON.parse(userDataStr);
+      return true;
+    }
+  } catch (error) {
+    console.error('사용자 정보 로드 오류:', error);
+  }
+  currentUser = null;
+  return false;
+}
 
 // 댓글 목록 로드
 async function loadComments() {
@@ -1004,13 +970,22 @@ function createCommentElement(comment) {
     `;
     
     // 이벤트 리스너 추가 (정상 댓글에만)
-    div.querySelector('.edit-btn').addEventListener('click', function() {
-      editComment(this.dataset.commentId, this.dataset.authorName);
-    });
-    
-    div.querySelector('.delete-btn').addEventListener('click', function() {
-      deleteComment(this.dataset.commentId, this.dataset.authorName);
-    });
+    // 로그인한 사용자만 수정/삭제 버튼 표시
+    if (checkLoginStatus() && currentUser && currentUser.userId === comment.AUTHOR_ID) {
+      div.querySelector('.edit-btn').addEventListener('click', function() {
+        editComment(comment.COMMENT_ID, comment.AUTHOR_ID);
+      });
+      
+      div.querySelector('.delete-btn').addEventListener('click', function() {
+        deleteComment(comment.COMMENT_ID, comment.AUTHOR_ID);
+      });
+    } else {
+      // 본인 댓글이 아니면 수정/삭제 버튼 숨기기
+      const actionsElement = div.querySelector('.comment-actions');
+      if (actionsElement) {
+        actionsElement.style.display = 'none';
+      }
+    }
   }
   
   return div;
@@ -1018,16 +993,15 @@ function createCommentElement(comment) {
 
 // 댓글 작성
 async function submitComment() {
-  const authorInput = document.getElementById('commentAuthorInput');
-  const contentTextarea = document.getElementById('commentTextarea');
-  const authorName = authorInput.value.trim();
-  const content = contentTextarea.value.trim();
-  
-  if (!authorName) {
-    alert('작성자 이름을 입력해주세요.');
-    authorInput.focus();
+  // 로그인 상태 확인
+  if (!checkLoginStatus()) {
+    alert('로그인이 필요합니다.');
+    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
     return;
   }
+  
+  const contentTextarea = document.getElementById('commentTextarea');
+  const content = contentTextarea.value.trim();
   
   if (!content) {
     alert('댓글 내용을 입력해주세요.');
@@ -1050,7 +1024,8 @@ async function submitComment() {
         postType,
         postId,
         content,
-        authorName
+        userId: currentUser.userId,
+        authorName: currentUser.nickname
       })
     });
     
@@ -1060,9 +1035,6 @@ async function submitComment() {
       alert(result.message || '댓글 작성에 실패했습니다.');
       return;
     }
-    
-    // 작성자 이름 저장
-    currentUserName = authorName;
     
     // 입력 필드 초기화
     contentTextarea.value = '';
@@ -1079,14 +1051,16 @@ async function submitComment() {
 }
 
 // 댓글 수정 모드로 전환
-function editComment(commentId, authorName) {
-  // 작성자 확인 (간단한 확인, 추후 인증 시스템으로 보완)
-  const inputName = prompt(`댓글을 수정하시려면 작성자 이름을 입력해주세요:\n\n(힌트: ${authorName})`);
+function editComment(commentId, authorId) {
+  // 로그인 확인
+  if (!checkLoginStatus()) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
   
-  if (!inputName) return;
-  
-  if (inputName !== authorName) {
-    alert('작성자 이름이 일치하지 않습니다.');
+  // 작성자 확인
+  if (currentUser.userId !== authorId) {
+    alert('본인이 작성한 댓글만 수정할 수 있습니다.');
     return;
   }
   
@@ -1119,7 +1093,7 @@ function editComment(commentId, authorName) {
   const saveBtn = document.createElement('button');
   saveBtn.className = 'comment-save-btn';
   saveBtn.textContent = '저장';
-  saveBtn.onclick = () => saveComment(commentId, authorName);
+  saveBtn.onclick = () => saveComment(commentId);
   
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'comment-cancel-btn';
@@ -1153,7 +1127,7 @@ function cancelEdit(commentId) {
 }
 
 // 댓글 저장
-async function saveComment(commentId, authorName) {
+async function saveComment(commentId) {
   const commentItem = document.querySelector(`[data-comment-id="${commentId}"]`);
   const editForm = commentItem.querySelector('.comment-edit-form');
   const textarea = editForm.querySelector('textarea');
@@ -1178,7 +1152,7 @@ async function saveComment(commentId, authorName) {
       },
       body: JSON.stringify({
         content: newContent,
-        authorName
+        userId: currentUser.userId
       })
     });
     
@@ -1200,14 +1174,16 @@ async function saveComment(commentId, authorName) {
 }
 
 // 댓글 삭제
-async function deleteComment(commentId, authorName) {
+async function deleteComment(commentId, authorId) {
+  // 로그인 확인
+  if (!checkLoginStatus()) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
   // 작성자 확인
-  const inputName = prompt(`댓글을 삭제하시려면 작성자 이름을 입력해주세요:\n\n(힌트: ${authorName})`);
-  
-  if (!inputName) return;
-  
-  if (inputName !== authorName) {
-    alert('작성자 이름이 일치하지 않습니다.');
+  if (currentUser.userId !== authorId) {
+    alert('본인이 작성한 댓글만 삭제할 수 있습니다.');
     return;
   }
   
@@ -1222,7 +1198,7 @@ async function deleteComment(commentId, authorName) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        authorName
+        userId: currentUser.userId
       })
     });
     
@@ -1379,25 +1355,60 @@ async function deletePost() {
 
 // 페이지 로드 시 게시글 불러오기
 document.addEventListener('DOMContentLoaded', async function() {
+  // GNB 렌더링
+  await window.Gnb.render({
+    containerId: 'gnb-root',
+    activeMenu: null, // 게시글 상세는 특정 메뉴에 속하지 않음
+    showMyInfo: true,
+    onReady: (refs) => {
+      // 레시피/정보공유 버튼에 이벤트 연결
+      if (refs.recipeBtn) {
+        refs.recipeBtn.addEventListener('click', () => {
+          window.location.href = '/board.html?board=1';
+        });
+      }
+      if (refs.tipBtn) {
+        refs.tipBtn.addEventListener('click', () => {
+          window.location.href = '/board.html?board=2';
+        });
+      }
+    }
+  });
+  
   await loadPost();
+  
+  // 로그인 상태 확인 및 댓글 폼 표시
+  const isLoggedIn = checkLoginStatus();
+  
+  if (isLoggedIn && currentUser) {
+    // 로그인한 사용자: 댓글 작성 폼 표시
+    document.getElementById('commentForm').style.display = 'block';
+    document.getElementById('commentLoginNotice').style.display = 'none';
+  } else {
+    // 비로그인 사용자: 로그인 안내 표시
+    document.getElementById('commentForm').style.display = 'none';
+    document.getElementById('commentLoginNotice').style.display = 'block';
+  }
   
   // 게시글 로드 후 댓글 섹션 표시 및 댓글 로드
   document.getElementById('commentsSection').style.display = 'block';
   await loadComments();
   
-  // 댓글 작성 버튼 이벤트
-  document.getElementById('commentSubmitBtn').addEventListener('click', submitComment);
-  
-  // 댓글 글자 수 카운터
-  document.getElementById('commentTextarea').addEventListener('input', updateCharCount);
-  
-  // 엔터키로 댓글 작성 (Shift+Enter는 줄바꿈)
-  document.getElementById('commentTextarea').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      submitComment();
-    }
-  });
+  if (isLoggedIn) {
+    // 댓글 작성 버튼 이벤트
+    document.getElementById('commentSubmitBtn').addEventListener('click', submitComment);
+    
+    // 댓글 글자 수 카운터
+    document.getElementById('commentTextarea').addEventListener('input', updateCharCount);
+    
+    // 엔터키로 댓글 작성 (Shift+Enter는 줄바꿈)
+    document.getElementById('commentTextarea').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitComment();
+      }
+    });
+  }
   
   // 게시글 수정/삭제 버튼 이벤트
   document.getElementById('editPostBtn').addEventListener('click', editPost);

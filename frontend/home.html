@@ -39,6 +39,7 @@
       margin-left: var(--gnb-width);
       flex: 1;
       padding: 3rem 4rem;
+      position: relative;
     }
 
     .home-header {
@@ -195,6 +196,33 @@
       margin-top: 4rem;
     }
 
+    .auth-actions {
+      position: absolute;
+      top: 2.5rem;
+      right: 4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .auth-link {
+      text-decoration: none;
+      color: var(--primary-pink);
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+
+    .auth-link:hover {
+      color: #ff4f8d;
+    }
+
+    .auth-separator {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
     @media (max-width: 1024px) {
       .home-main {
         padding: 2.5rem 2rem;
@@ -206,6 +234,11 @@
 
       .thumbnail-grid {
         gap: 1.25rem;
+      }
+
+      .auth-actions {
+        top: 2rem;
+        right: 2rem;
       }
     }
 
@@ -230,6 +263,12 @@
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 1rem;
       }
+
+      .auth-actions {
+        top: 1.5rem;
+        right: 1.5rem;
+        font-size: 0.85rem;
+      }
     }
 
     @media (max-width: 540px) {
@@ -249,6 +288,13 @@
         font-size: 0.85rem;
         padding: 0.35rem 1rem;
       }
+
+      .auth-actions {
+        position: static;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
+      }
     }
   </style>
 </head>
@@ -257,6 +303,11 @@
     <div id="gnb-root"></div>
 
     <main class="home-main">
+      <div class="auth-actions" id="authActions">
+        <a href="/login.html" class="auth-link">로그인</a>
+        <span class="auth-separator">|</span>
+        <a href="/register.html" class="auth-link">회원가입</a>
+      </div>
       <header class="home-header">
         <h1 class="service-title">샌드위치냠냠</h1>
 
@@ -285,6 +336,29 @@
   <script>
     const FEATURE_LIMIT = 12;
     const TAG_LIMIT = 13;
+
+    function getStoredUser() {
+      try {
+        const raw = localStorage.getItem('sandwichUser');
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        console.warn('저장된 사용자 정보를 불러오지 못했습니다.', error);
+        return null;
+      }
+    }
+
+    function applyAuthState(user, gnbRefs) {
+      const authActions = document.getElementById('authActions');
+      const isLoggedIn = !!user;
+
+      if (authActions) {
+        authActions.style.display = isLoggedIn ? 'none' : 'flex';
+      }
+
+      if (gnbRefs && gnbRefs.myInfoBtn) {
+        gnbRefs.myInfoBtn.style.display = isLoggedIn ? 'flex' : 'none';
+      }
+    }
 
     function renderTags(tagList) {
       const container = document.getElementById('popularTags');
@@ -409,7 +483,7 @@
     function setupHomeGnb(gnbRefs) {
       if (!gnbRefs) return;
 
-      const { recipeBtn, tipBtn, myInfoBtn } = gnbRefs;
+      const { recipeBtn, tipBtn } = gnbRefs;
 
       if (recipeBtn) {
         recipeBtn.addEventListener('click', () => {
@@ -422,20 +496,23 @@
           window.location.href = '/board.html?board=2';
         });
       }
-
-      if (myInfoBtn) {
-        myInfoBtn.addEventListener('click', () => {
-          alert('My info 기능은 준비 중입니다.');
-        });
-      }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+      const currentUser = getStoredUser();
+      let gnbRefs = null;
+
       await Gnb.render({
         containerId: 'gnb-root',
         activeMenu: null,
-        onReady: setupHomeGnb
+        showMyInfo: !!currentUser,
+        onReady: (refs) => {
+          gnbRefs = refs;
+          setupHomeGnb(refs);
+        }
       });
+
+      applyAuthState(currentUser, gnbRefs);
 
       initSearch();
       loadHomeData();
@@ -449,6 +526,12 @@
           }
         })
         .catch(err => console.warn('Footer 로드 실패:', err));
+
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'sandwichUser') {
+          applyAuthState(getStoredUser(), gnbRefs);
+        }
+      });
     });
   </script>
 </body>

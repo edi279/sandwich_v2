@@ -68,16 +68,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 댓글 작성
+// 댓글 작성 (로그인 필수)
 router.post('/', async (req, res) => {
   try {
-    const { postType, postId, content, authorName } = req.body;
+    const { postType, postId, content, userId, authorName } = req.body;
     
     // 필수 입력값 검증
-    if (!postType || !postId || !content) {
+    if (!postType || !postId || !content || !userId) {
       return res.status(400).json({
         success: false,
-        message: '게시글 타입, 게시글 ID, 댓글 내용은 필수 항목입니다.'
+        message: '게시글 타입, 게시글 ID, 댓글 내용, 사용자 ID는 필수 항목입니다.'
       });
     }
     
@@ -98,11 +98,24 @@ router.post('/', async (req, res) => {
       });
     }
     
+    // 사용자 존재 여부 확인
+    const [userRows] = await pool.execute(
+      'SELECT USER_ID, NICKNAME FROM USER_TB WHERE USER_ID = ?',
+      [userId]
+    );
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
     // 댓글 삽입 (트리거가 게시글 존재 여부를 자동으로 검증)
     const [result] = await pool.execute(
-      `INSERT INTO COMMENT_TB (POST_TYPE, POST_ID, CONTENT, AUTHOR_NAME) 
-       VALUES (?, ?, ?, ?)`,
-      [postTypeId, postId, content, authorName || '익명']
+      `INSERT INTO COMMENT_TB (POST_TYPE, POST_ID, CONTENT, AUTHOR_ID, AUTHOR_NAME) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [postTypeId, postId, content, userId, authorName || userRows[0].NICKNAME]
     );
     
     // 생성된 댓글 조회
@@ -149,17 +162,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 댓글 수정
+// 댓글 수정 (로그인 필수)
 router.put('/:commentId', async (req, res) => {
   try {
     const { commentId } = req.params;
-    const { content, authorName } = req.body;
+    const { content, userId } = req.body;
     
     // 필수 입력값 검증
-    if (!content) {
+    if (!content || !userId) {
       return res.status(400).json({
         success: false,
-        message: '댓글 내용은 필수 항목입니다.'
+        message: '댓글 내용과 사용자 ID는 필수 항목입니다.'
       });
     }
     
@@ -173,7 +186,7 @@ router.put('/:commentId', async (req, res) => {
     
     // 댓글 존재 여부 및 작성자 확인
     const [commentRows] = await pool.execute(
-      'SELECT AUTHOR_NAME FROM COMMENT_TB WHERE COMMENT_ID = ?',
+      'SELECT AUTHOR_ID, DELETED_YN FROM COMMENT_TB WHERE COMMENT_ID = ?',
       [commentId]
     );
     
@@ -184,11 +197,19 @@ router.put('/:commentId', async (req, res) => {
       });
     }
     
-    // 작성자 확인 (현재는 이름으로만 확인, 추후 인증 시스템 추가 시 보완)
-    if (authorName && commentRows[0].AUTHOR_NAME !== authorName) {
+    // 삭제된 댓글인지 확인
+    if (commentRows[0].DELETED_YN === 'Y') {
+      return res.status(400).json({
+        success: false,
+        message: '삭제된 댓글은 수정할 수 없습니다.'
+      });
+    }
+    
+    // 작성자 확인
+    if (commentRows[0].AUTHOR_ID !== userId) {
       return res.status(403).json({
         success: false,
-        message: '댓글 작성자만 수정할 수 있습니다.'
+        message: '본인이 작성한 댓글만 수정할 수 있습니다.'
       });
     }
     
@@ -240,15 +261,23 @@ router.put('/:commentId', async (req, res) => {
   }
 });
 
-// 댓글 삭제 (Soft Delete - DELETED_YN을 'Y'로 변경)
+// 댓글 삭제 (Soft Delete - DELETED_YN을 'Y'로 변경, 로그인 필수)
 router.delete('/:commentId', async (req, res) => {
   try {
     const { commentId } = req.params;
-    const { authorName } = req.body;
+    const { userId } = req.body;
+    
+    // 필수 입력값 검증
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: '사용자 ID는 필수 항목입니다.'
+      });
+    }
     
     // 댓글 존재 여부 및 작성자 확인
     const [commentRows] = await pool.execute(
-      'SELECT AUTHOR_NAME, DELETED_YN FROM COMMENT_TB WHERE COMMENT_ID = ?',
+      'SELECT AUTHOR_ID, DELETED_YN FROM COMMENT_TB WHERE COMMENT_ID = ?',
       [commentId]
     );
     
@@ -267,11 +296,11 @@ router.delete('/:commentId', async (req, res) => {
       });
     }
     
-    // 작성자 확인 (현재는 이름으로만 확인, 추후 인증 시스템 추가 시 보완)
-    if (authorName && commentRows[0].AUTHOR_NAME !== authorName) {
+    // 작성자 확인
+    if (commentRows[0].AUTHOR_ID !== userId) {
       return res.status(403).json({
         success: false,
-        message: '댓글 작성자만 삭제할 수 있습니다.'
+        message: '본인이 작성한 댓글만 삭제할 수 있습니다.'
       });
     }
     

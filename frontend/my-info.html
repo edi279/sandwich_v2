@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net;">
+  <title>내 정보 - 샌드위치냠냠</title>
+  <link rel="stylesheet" href="/assets/css/gnb.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <style>
+    :root {
+      --gnb-width: 80px;
+      --primary-pink: #ff6b9d;
+      --soft-pink: #ffe0e6;
+      --soft-gray: #f8f9fa;
+      --border-color: #f1f3f5;
+      --text-dark: #333;
+      --text-muted: #868e96;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--soft-gray);
+      font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text-dark);
+    }
+
+    .my-info-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .my-info-main {
+      margin-left: var(--gnb-width);
+      flex: 1;
+      padding: 3rem 4rem;
+    }
+
+    .page-header {
+      margin-bottom: 3rem;
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary-pink);
+      letter-spacing: 2px;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .profile-section {
+      background-color: #fff;
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      margin-bottom: 2rem;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .profile-avatar-wrapper {
+      position: relative;
+    }
+
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6b9d, #ff85b8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: #fff;
+      font-weight: 700;
+      border: 4px solid #fff;
+      box-shadow: 0 4px 16px rgba(255, 107, 157, 0.2);
+      object-fit: cover;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .profile-avatar #avatarText {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .profile-avatar #avatarText svg {
+      width: 48px;
+      height: 48px;
+      color: #ffffff;
+    }
+
+    .profile-avatar.has-image {
+      background: #fff;
+    }
+
+    .profile-avatar.has-image img {
+      display: block;
+    }
+
+    .profile-avatar.has-image #avatarText {
+      display: none;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .uploading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .profile-avatar-btn {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--primary-pink);
+      border: 3px solid #fff;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .profile-avatar-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .profile-avatar-delete-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: rgba(220, 53, 69, 0.9);
+      border: 2px solid #fff;
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-avatar-wrapper:hover .profile-avatar-delete-btn {
+      display: flex;
+    }
+
+    .profile-avatar-delete-btn:hover {
+      background-color: rgba(220, 53, 69, 1);
+      transform: scale(1.1);
+    }
+
+    .profile-info {
+      flex: 1;
+    }
+
+    .profile-nickname {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .profile-email {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin: 0 0 1rem 0;
+    }
+
+    .profile-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-dark);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      border: 1.5px solid #ffd6e1;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      font-size: 0.95rem;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-pink);
+      box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.15);
+    }
+
+    .primary-button {
+      padding: 0.95rem 1.5rem;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff6b9d, #ff85b8);
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      align-self: flex-start;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px rgba(255, 107, 157, 0.35);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin: 0 0 1.5rem 0;
+    }
+
+    @media (max-width: 1024px) {
+      .my-info-main {
+        padding: 2.5rem 2rem;
+      }
+
+      .page-title {
+        font-size: 2.2rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --gnb-width: 64px;
+      }
+
+      .my-info-main {
+        padding: 2rem 1.5rem;
+      }
+
+      .page-title {
+        font-size: 2rem;
+      }
+
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .profile-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+      }
+    }
+
+    @media (max-width: 540px) {
+      .my-info-main {
+        padding: 1.8rem 1.2rem;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+      }
+
+      .profile-section {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="my-info-container">
+    <div id="gnb-root"></div>
+
+    <main class="my-info-main">
+      <header class="page-header">
+        <h1 class="page-title">내 정보</h1>
+        <p class="page-subtitle">내 프로필 정보를 관리할 수 있습니다.</p>
+      </header>
+
+      <!-- 나의 프로필 섹션 -->
+      <section class="profile-section" id="profileSection">
+
+        <div class="profile-header">
+          <div class="profile-avatar-wrapper">
+            <div class="profile-avatar" id="profileAvatar">
+              <span id="avatarText"></span>
+              <img id="avatarImage" src="" alt="프로필 사진">
+            </div>
+            <button class="profile-avatar-btn" id="avatarEditBtn" title="프로필 사진 변경">📷</button>
+            <button class="profile-avatar-delete-btn" id="avatarDeleteBtn" title="프로필 사진 삭제">×</button>
+            <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
+          </div>
+          <div class="profile-info">
+            <h3 class="profile-nickname" id="profileNickname">사용자</h3>
+            <p class="profile-email" id="profileEmail">user@example.com</p>
+          </div>
+        </div>
+        <form class="profile-form" id="profileForm">
+          <div class="form-group">
+            <label for="nicknameInput">닉네임</label>
+            <input type="text" id="nicknameInput" name="nickname" placeholder="닉네임을 입력해 주세요" required>
+          </div>
+          <div class="form-group">
+            <label for="passwordInput">비밀번호 변경</label>
+            <input type="password" id="passwordInput" name="password" placeholder="새 비밀번호를 입력해 주세요 (8자리 이상)">
+          </div>
+          <div class="form-group">
+            <label for="passwordConfirmInput">비밀번호 확인</label>
+            <input type="password" id="passwordConfirmInput" name="passwordConfirm" placeholder="비밀번호를 다시 입력해 주세요">
+          </div>
+          <button type="submit" class="primary-button">변경 사항 저장</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="/assets/js/gnb.js"></script>
+  <script>
+    function getStoredUser() {
+      try {
+        const raw = localStorage.getItem('sandwichUser');
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        console.warn('저장된 사용자 정보를 불러오지 못했습니다.', error);
+        return null;
+      }
+    }
+
+    function loadUserProfile() {
+      const user = getStoredUser();
+      if (!user) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // 프로필 정보 표시
+      const nickname = user.nickname || '사용자';
+      const email = user.email || '';
+      const profileImageUrl = user.profileImageUrl || null;
+      const firstChar = nickname[0] || email[0] || '사';
+
+      document.getElementById('profileNickname').textContent = nickname;
+      document.getElementById('profileEmail').textContent = email;
+      document.getElementById('nicknameInput').value = nickname;
+
+      // 프로필 이미지 설정
+      const avatarEl = document.getElementById('profileAvatar');
+      const avatarText = document.getElementById('avatarText');
+      const avatarImage = document.getElementById('avatarImage');
+      const avatarDeleteBtn = document.getElementById('avatarDeleteBtn');
+      const defaultIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16" style="color: #ffffff;"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/></svg>`;
+
+      if (profileImageUrl) {
+        avatarImage.src = profileImageUrl;
+        avatarImage.onload = () => {
+          avatarEl.classList.add('has-image');
+          avatarText.style.display = 'none';
+          if (avatarDeleteBtn) avatarDeleteBtn.style.display = 'flex';
+        };
+        avatarImage.onerror = () => {
+          // 이미지 로드 실패 시 아이콘 표시
+          avatarEl.classList.remove('has-image');
+          avatarText.style.display = 'flex';
+          avatarText.innerHTML = defaultIcon;
+          if (avatarDeleteBtn) avatarDeleteBtn.style.display = 'none';
+        };
+      } else {
+        avatarEl.classList.remove('has-image');
+        avatarText.style.display = 'flex';
+        avatarText.innerHTML = defaultIcon;
+        avatarImage.src = '';
+        if (avatarDeleteBtn) avatarDeleteBtn.style.display = 'none';
+      }
+    }
+
+    async function uploadProfileImage(file) {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const response = await fetch('/api/upload/image', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || '이미지 업로드에 실패했습니다.');
+        }
+
+        if (!result.url || typeof result.url !== 'string' || result.url.trim().length === 0) {
+          throw new Error('업로드된 이미지 URL을 받을 수 없습니다.');
+        }
+
+        console.log('이미지 업로드 성공:', result.url);
+        return result.url;
+      } catch (error) {
+        console.error('이미지 업로드 오류:', error);
+        throw error;
+      }
+    }
+
+    async function updateProfileImage(imageUrl) {
+      const user = getStoredUser();
+      if (!user || !user.userId) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // imageUrl이 유효한지 확인
+      if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.trim().length === 0) {
+        throw new Error('유효하지 않은 이미지 URL입니다.');
+      }
+
+      const trimmedUrl = imageUrl.trim();
+      
+      const requestBody = {
+        userId: user.userId,
+        profileImageUrl: trimmedUrl
+      };
+      
+      console.log('프로필 이미지 업데이트 요청:', requestBody);
+      console.log('사용자 정보:', user);
+      console.log('userId 타입:', typeof user.userId, '값:', user.userId);
+
+      try {
+        const response = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+
+        const result = await response.json();
+        
+        console.log('[프로필 이미지 업데이트 응답]', {
+          status: response.status,
+          ok: response.ok,
+          result: result
+        });
+
+        if (!response.ok || !result.success) {
+          console.error('[프로필 이미지 업데이트 실패 상세]', {
+            status: response.status,
+            message: result.message,
+            error: result.error,
+            fullResult: result
+          });
+          throw new Error(result.message || '프로필 이미지 업데이트에 실패했습니다.');
+        }
+
+        // localStorage의 사용자 정보 업데이트
+        if (result.data) {
+          localStorage.setItem('sandwichUser', JSON.stringify({
+            ...user,
+            profileImageUrl: result.data.profileImageUrl
+          }));
+          
+          // GNB 프로필 이미지 업데이트
+          if (typeof Gnb !== 'undefined' && Gnb.updateProfileImage) {
+            Gnb.updateProfileImage();
+          }
+        }
+
+        // 프로필 정보 다시 로드
+        loadUserProfile();
+
+        return true;
+      } catch (error) {
+        console.error('프로필 이미지 업데이트 오류:', error);
+        throw error;
+      }
+    }
+
+    async function deleteProfileImage() {
+      const user = getStoredUser();
+      if (!user || !user.userId) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      if (!confirm('프로필 사진을 삭제하시겠습니까?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.userId,
+            profileImageUrl: null
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          alert(result.message || '프로필 이미지 삭제에 실패했습니다.');
+          return;
+        }
+
+        // localStorage의 사용자 정보 업데이트
+        if (result.data) {
+          localStorage.setItem('sandwichUser', JSON.stringify({
+            ...user,
+            profileImageUrl: null
+          }));
+          
+          // GNB 프로필 이미지 업데이트
+          if (typeof Gnb !== 'undefined' && Gnb.updateProfileImage) {
+            Gnb.updateProfileImage();
+          }
+        }
+
+        // 프로필 정보 다시 로드
+        loadUserProfile();
+
+        alert('프로필 사진이 삭제되었습니다.');
+      } catch (error) {
+        console.error('프로필 이미지 삭제 오류:', error);
+        alert('프로필 이미지 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    }
+
+    function setupProfileForm() {
+      const profileForm = document.getElementById('profileForm');
+      const avatarBtn = document.getElementById('avatarEditBtn');
+      const avatarDeleteBtn = document.getElementById('avatarDeleteBtn');
+      const avatarUploadInput = document.getElementById('avatarUploadInput');
+
+      // 프로필 사진 변경 버튼
+      avatarBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        avatarUploadInput.click();
+      });
+
+      // 프로필 사진 삭제 버튼
+      if (avatarDeleteBtn) {
+        avatarDeleteBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          await deleteProfileImage();
+        });
+      }
+
+      // 파일 선택 이벤트
+      avatarUploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // 파일 크기 검증 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('파일 크기는 5MB 이하여야 합니다.');
+          avatarUploadInput.value = '';
+          return;
+        }
+
+        // 이미지 파일 타입 검증
+        if (!file.type.startsWith('image/')) {
+          alert('이미지 파일만 업로드할 수 있습니다.');
+          avatarUploadInput.value = '';
+          return;
+        }
+
+        try {
+          // 업로드 중 표시
+          const avatarWrapper = document.querySelector('.profile-avatar-wrapper');
+          avatarWrapper.classList.add('uploading');
+          avatarBtn.disabled = true;
+
+          // 이미지 업로드
+          const imageUrl = await uploadProfileImage(file);
+
+          // 프로필 이미지 업데이트
+          await updateProfileImage(imageUrl);
+
+          alert('프로필 사진이 업데이트되었습니다.');
+        } catch (error) {
+          console.error('프로필 사진 업로드 오류:', error);
+          alert(error.message || '프로필 사진 업로드 중 오류가 발생했습니다.');
+        } finally {
+          // 업로드 중 표시 해제
+          const avatarWrapper = document.querySelector('.profile-avatar-wrapper');
+          avatarWrapper.classList.remove('uploading');
+          avatarBtn.disabled = false;
+          avatarUploadInput.value = '';
+        }
+      });
+
+      // 프로필 정보 수정 폼
+      profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(profileForm);
+        const nickname = formData.get('nickname');
+        const password = formData.get('password');
+        const passwordConfirm = formData.get('passwordConfirm');
+
+        // 비밀번호 변경 시 검증
+        if (password) {
+          if (password.length < 8) {
+            alert('비밀번호는 8자리 이상이어야 합니다.');
+            return;
+          }
+          if (password !== passwordConfirm) {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+          }
+        }
+
+        const user = getStoredUser();
+        if (!user || !user.userId) {
+          window.location.href = '/login.html';
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/user/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.userId,
+              nickname: nickname || undefined,
+              password: password || undefined
+            })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            alert(result.message || '프로필 업데이트에 실패했습니다.');
+            return;
+          }
+
+          alert('프로필이 업데이트되었습니다.');
+          
+          // localStorage의 사용자 정보 업데이트
+          if (result.data) {
+            localStorage.setItem('sandwichUser', JSON.stringify({
+              ...user,
+              nickname: result.data.nickname,
+              profileImageUrl: result.data.profileImageUrl || null
+            }));
+            
+            // GNB 프로필 이미지 업데이트
+            if (typeof Gnb !== 'undefined' && Gnb.updateProfileImage) {
+              Gnb.updateProfileImage();
+            }
+          }
+          
+          // 프로필 정보 다시 로드
+          loadUserProfile();
+          
+          // 비밀번호 필드 초기화
+          document.getElementById('passwordInput').value = '';
+          document.getElementById('passwordConfirmInput').value = '';
+        } catch (error) {
+          console.error('프로필 업데이트 오류:', error);
+          alert('프로필 업데이트 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const currentUser = getStoredUser();
+
+      if (!currentUser) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      await Gnb.render({
+        containerId: 'gnb-root',
+        activeMenu: 'my-info',
+        showMyInfo: true,
+        onReady: (refs) => {
+          // 게시판 메뉴 클릭 이벤트 설정
+          if (refs.recipeBtn) {
+            refs.recipeBtn.addEventListener('click', () => {
+              window.location.href = '/board.html?board=1';
+            });
+          }
+          if (refs.tipBtn) {
+            refs.tipBtn.addEventListener('click', () => {
+              window.location.href = '/board.html?board=2';
+            });
+          }
+        }
+      });
+
+      loadUserProfile();
+      setupProfileForm();
+    });
+  </script>
+</body>
+</html>
+

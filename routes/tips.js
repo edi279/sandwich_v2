@@ -179,7 +179,28 @@ router.post('/', async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { title, content, subcategory, tags, authorName } = req.body;
+    const { title, content, subcategory, tags, authorName, userId } = req.body;
+    
+    // 로그인 체크
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '로그인이 필요합니다.'
+      });
+    }
+    
+    // 사용자 존재 여부 확인
+    const [userRows] = await connection.execute(
+      'SELECT USER_ID FROM USER_TB WHERE USER_ID = ?',
+      [userId]
+    );
+    
+    if (userRows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: '유효하지 않은 사용자입니다.'
+      });
+    }
     
     // 입력값 검증
     if (!title || !content) {
@@ -199,10 +220,10 @@ router.post('/', async (req, res) => {
     // MENU_ID를 직접 CATEGORY로 사용 (정수형)
     const categoryId = parseInt(subcategory);
     
-    // TIP_TB에 게시글 삽입
+    // TIP_TB에 게시글 삽입 (AUTHOR_ID 포함)
     const [result] = await connection.execute(
-      'INSERT INTO TIP_TB (TITLE, AUTHOR_NAME, CATEGORY) VALUES (?, ?, ?)',
-      [title, authorName || '익명', categoryId]
+      'INSERT INTO TIP_TB (TITLE, AUTHOR_ID, AUTHOR_NAME, CATEGORY) VALUES (?, ?, ?, ?)',
+      [title, userId, authorName || '익명', categoryId]
     );
     
     const tipId = result.insertId;
@@ -243,7 +264,28 @@ router.put('/:id', async (req, res) => {
     await connection.beginTransaction();
     
     const { id } = req.params;
-    const { title, content, subcategory, tags, authorName } = req.body;
+    const { title, content, subcategory, tags, authorName, userId } = req.body;
+    
+    // 로그인 체크
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '로그인이 필요합니다.'
+      });
+    }
+    
+    // 사용자 존재 여부 확인
+    const [userRows] = await connection.execute(
+      'SELECT USER_ID FROM USER_TB WHERE USER_ID = ?',
+      [userId]
+    );
+    
+    if (userRows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: '유효하지 않은 사용자입니다.'
+      });
+    }
     
     // 입력값 검증
     if (!title || !content) {
@@ -273,12 +315,20 @@ router.put('/:id', async (req, res) => {
       });
     }
     
+    // 작성자 본인 확인 (AUTHOR_ID가 있는 경우)
+    if (existingRows[0].AUTHOR_ID && existingRows[0].AUTHOR_ID !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: '본인이 작성한 게시글만 수정할 수 있습니다.'
+      });
+    }
+    
     const categoryId = parseInt(subcategory);
     
-    // TIP_TB 업데이트
+    // TIP_TB 업데이트 (AUTHOR_ID도 업데이트, 기존에 없었던 경우를 위해)
     await connection.execute(
-      'UPDATE TIP_TB SET TITLE = ?, AUTHOR_NAME = ?, CATEGORY = ? WHERE TIP_ID = ?',
-      [title, authorName || '익명', categoryId, id]
+      'UPDATE TIP_TB SET TITLE = ?, AUTHOR_ID = ?, AUTHOR_NAME = ?, CATEGORY = ? WHERE TIP_ID = ?',
+      [title, userId, authorName || '익명', categoryId, id]
     );
     
     // TIP_CONTENT_TB 업데이트 (존재하면 업데이트, 없으면 INSERT)
