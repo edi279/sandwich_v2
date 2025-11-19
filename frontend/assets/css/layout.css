@@ -1,0 +1,91 @@
+/* 레이아웃 관련 스타일 - Container, Grid, Flex 등 */
+
+/* 메인 컨테이너 */
+.main-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 메인 컨텐츠 영역 (GNB가 있는 페이지) */
+.main-content {
+  margin-left: var(--gnb-width);
+  flex: 1;
+  padding: var(--spacing-xl);
+}
+
+/* 페이지별 메인 컨텐츠 */
+.home-main,
+.my-info-main,
+.my-activity-main,
+.search-main {
+  margin-left: var(--gnb-width);
+  flex: 1;
+  padding: var(--spacing-3xl) var(--spacing-4xl);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 페이지 헤더 */
+.page-header {
+  margin-bottom: var(--spacing-3xl);
+}
+
+.page-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--primary-pink);
+  letter-spacing: 2px;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
+  margin: 0;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .home-main,
+  .my-info-main,
+  .my-activity-main,
+  .search-main {
+    padding: var(--spacing-2xl) var(--spacing-xl);
+  }
+
+  .page-title {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: var(--gnb-width-mobile);
+    padding: var(--spacing-md);
+  }
+
+  .home-main,
+  .my-info-main,
+  .my-activity-main,
+  .search-main {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .page-title {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+@media (max-width: 540px) {
+  .home-main,
+  .my-info-main,
+  .my-activity-main,
+  .search-main {
+    padding: 1.8rem 1.2rem;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+  }
+}
+

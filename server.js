@@ -9,6 +9,9 @@ const uploadRoutes = require('./routes/upload');
 const homeRoutes = require('./routes/home');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const searchRoutes = require('./routes/search');
+const likeRoutes = require('./routes/likes');
+const bookmarkRoutes = require('./routes/bookmarks');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +45,9 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/home', homeRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/likes', likeRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
 
 // 디버깅용 요청 로거 (프로필 수정 API)
 app.use('/api/user/profile', (req, res, next) => {

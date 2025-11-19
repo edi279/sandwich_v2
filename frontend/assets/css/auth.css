@@ -1,0 +1,153 @@
+/* 인증 페이지 스타일 (login, register, find-password) */
+
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+}
+
+.auth-panel {
+  width: min(520px, 100%);
+  background-color: #fff;
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-pink-lg);
+  padding: 3.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-pink);
+  margin: 0;
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0.75rem 0 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.input-icon.visible {
+  opacity: 1;
+}
+
+.input-icon.check {
+  color: var(--success);
+}
+
+.input-icon.error {
+  color: var(--error);
+}
+
+.validation-message {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  min-height: 1.2rem;
+  transition: opacity var(--transition-base);
+}
+
+.validation-message.error {
+  color: var(--error);
+}
+
+.validation-message.success {
+  color: var(--success);
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-2xl);
+  background-color: rgba(255, 107, 157, 0.06);
+  border: 1px dashed rgba(255, 107, 157, 0.3);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.checkbox-group input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-pink);
+}
+
+.helper-text {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin: -0.5rem 0 0;
+}
+
+.link-row {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.link-row a {
+  color: var(--primary-pink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.link-group a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.link-group a:hover {
+  color: var(--primary-pink);
+}
+
+/* 인증 페이지 배경 (로그인, 회원가입, 비밀번호 찾기) */
+body.auth-page {
+  background: linear-gradient(135deg, #fff5f8 0%, #ffe0e6 50%, #fff 100%);
+}
+
+@media (max-width: 560px) {
+  .auth-panel {
+    padding: 2.75rem 2.25rem;
+  }
+
+  .auth-title {
+    font-size: 1.75rem;
+  }
+}
+

@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
+const { sendPasswordResetEmail } = require('../config/email');
 
 const router = express.Router();
 
@@ -285,16 +286,19 @@ router.post('/find-password', async (req, res) => {
       [hashedTempPassword, user.USER_ID]
     );
 
-    // TODO: 실제 이메일 발송 기능 구현 필요
-    // 현재는 콘솔에 임시 비밀번호 출력 (개발/테스트용)
-    console.log('='.repeat(50));
-    console.log(`[비밀번호 찾기] 이메일: ${email}`);
-    console.log(`[비밀번호 찾기] 임시 비밀번호: ${tempPassword}`);
-    console.log('='.repeat(50));
-    console.log('⚠️  실제 운영 환경에서는 이메일로 임시 비밀번호를 발송해야 합니다.');
-
-    // 실제 이메일 발송 기능이 구현되면 아래 주석을 해제하고 사용
-    // await sendPasswordResetEmail(email, tempPassword);
+    // 이메일 발송
+    try {
+      await sendPasswordResetEmail(email, tempPassword);
+      console.log(`[비밀번호 찾기] 이메일 발송 성공: ${email}`);
+    } catch (emailError) {
+      console.error('[비밀번호 찾기] 이메일 발송 실패:', emailError);
+      // 이메일 발송 실패해도 임시 비밀번호는 발급되었으므로 성공으로 처리
+      // 단, 사용자에게는 이메일 발송 실패를 알림
+      return res.status(200).json({
+        success: true,
+        message: '임시 비밀번호가 발급되었으나 이메일 발송에 실패했습니다. 관리자에게 문의해 주세요.'
+      });
+    }
 
     return res.status(200).json({
       success: true,

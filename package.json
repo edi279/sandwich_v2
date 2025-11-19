@@ -1,7 +1,7 @@
 {
   "name": "sandwich-v2",
   "version": "1.0.0",
-  "description": "샌드위치냠냠 웹 애플리케이션",
+  "description": "샌냠 웹 애플리케이션",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -15,6 +15,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.15.3"
+    "mysql2": "^3.15.3",
+    "nodemailer": "^7.0.10"
   }
 }

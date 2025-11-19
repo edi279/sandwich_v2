@@ -4,56 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.youtube.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; frame-src 'self' https://www.youtube.com; connect-src 'self' https://cdn.jsdelivr.net;">
-<title>게시글 작성 - 샌드위치냠냠</title>
+<title>게시글 작성 - 샌냠</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/pages.css">
 <style>
-body { background-color:#f8f9fa; }
 main { padding-top: 2rem; padding-bottom: 4rem; }
-.editor-container { background-color: white; border-radius: 0.5rem; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
-.editor-header { border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem; }
-.editor-body { padding: 1.5rem; }
-.editor-top-bar { padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-.editor-top-bar-left { display: flex; align-items: center; gap: 1rem; }
-.editor-top-bar-right { display: flex; gap: 0.5rem; }
-.title-input-wrapper { position: relative; margin: 1.5rem; }
-.title-input-wrapper .form-control { padding-right: 80px; }
-.title-char-count { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #6c757d; font-size: 0.875rem; }
-.editor-toolbar { background-color: #f8f9fa; border: 1px solid #dee2e6; border-bottom: none; padding: 0.5rem; border-radius: 0.375rem 0.375rem 0 0; display: flex; flex-wrap: wrap; align-items: center; }
-.editor-toolbar button { margin-right: 0.35rem; margin-bottom: 0.2rem; }
-.editor-toolbar .btn-group { margin-left: 0.3rem; margin-right: 0.3rem;}
-.editor-content-wrapper { margin: 0 1.5rem 1.5rem 1.5rem; }
-.editor-content { border: 1px solid #dee2e6; border-top: none; min-height: 400px; padding: 1rem; border-radius: 0 0 0.375rem 0.375rem; font-size: 14px; line-height: 1.6; }
-.editor-content:focus { outline: none; border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
-.editor-content h1 { font-size: 32px; font-weight: 600; line-height: 1.2; margin: 0.65em 0 0.4em 0; }
-.editor-content h2 { font-size: 24px; font-weight: 600; line-height: 1.2; margin: 0.6em 0 0.4em 0; }
-.editor-content h3 { font-size: 18px; font-weight: 600; line-height: 1.2; margin: 0.55em 0 0.4em 0; }
-.editor-content p { font-size: 14px; margin: 0.35em 0; }
-.editor-content iframe { max-width: 100%; margin: 1em 0; border-radius: 0.375rem; }
 .tag-input { border-radius: 0.375rem; }
 .tag-badge { margin: 0.25rem; cursor: pointer; }
-.tag-section { padding: 0 1.5rem 1.5rem 1.5rem; }
-.thumbnail-section { padding: 0 1.5rem 1.5rem 1.5rem; display: none; }
-.thumbnail-card { border: 1px dashed #ced4da; border-radius: 0.5rem; padding: 1rem; text-align: center; background-color: #f8f9fa; transition: border-color 0.2s, background-color 0.2s; }
-.thumbnail-card.has-image { border-style: solid; border-color: #86b7fe; background-color: #fff; }
-.thumbnail-card img { max-width: 100%; height: auto; border-radius: 0.375rem; margin-bottom: 0.75rem; }
-.thumbnail-placeholder { color: #6c757d; font-size: 0.95rem; margin-bottom: 0.75rem; }
-.thumbnail-actions { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
-.publish-options { display: none; }
-#previewModal .modal-footer { 
-  justify-content: center; 
-  padding: 1rem;
-}
-#publishFromModalBtn { 
-  min-width: 110px;
-  padding-left: calc(1rem + 10px);
-  padding-right: calc(1rem + 10px);
-}
 </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="#">샌드위치냠냠</a>
+    <a class="navbar-brand fw-bold" href="#">샌냠</a>
   </div>
 </nav>
 
@@ -1223,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // 페이지 제목 변경
-      document.title = '게시글 수정 - 샌드위치냠냠';
+      document.title = '게시글 수정 - 샌냠';
       
       // 발행 버튼 텍스트 변경
       const publishBtn = document.getElementById('publishBtn');
