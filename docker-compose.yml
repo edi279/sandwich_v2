@@ -45,6 +45,7 @@ services:
       - ./server.js:/app/server.js
       - ./routes:/app/routes
       - ./config:/app/config
+      - ./utils:/app/utils
       - ./uploads:/app/uploads
     depends_on:
       mysql:

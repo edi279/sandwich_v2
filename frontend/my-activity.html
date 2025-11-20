@@ -110,9 +110,11 @@
 
     .badge-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 1.5rem;
       margin-top: 1.5rem;
+      width: 100%;
+      position: relative;
     }
 
     .badge-card {
@@ -122,6 +124,13 @@
       text-align: center;
       transition: all 0.2s ease;
       border: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1;
+      min-width: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
     .badge-card:hover {
@@ -131,26 +140,113 @@
     }
 
     .badge-icon {
-      font-size: 3rem;
-      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
     }
 
-    .badge-name {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin: 0.5rem 0 0.25rem 0;
+    .badge-icon svg {
+      width: 48px;
+      height: 48px;
+      display: block;
+      flex-shrink: 0;
     }
 
-    .badge-description {
-      font-size: 0.85rem;
+    /* 모달 스타일 */
+    .badge-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    .badge-modal.show {
+      display: flex;
+    }
+
+    .badge-modal-content {
+      background-color: #fff;
+      border-radius: 20px;
+      padding: 2.5rem;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .badge-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
       color: var(--text-muted);
-      margin: 0;
+      padding: 0.5rem;
+      line-height: 1;
     }
 
-    .badge-card.locked {
-      opacity: 0.4;
-      filter: grayscale(100%);
+    .badge-modal-close:hover {
+      color: var(--text-dark);
+    }
+
+    .badge-modal-icon {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .badge-modal-icon svg {
+      width: 64px;
+      height: 64px;
+    }
+
+    .badge-modal-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .badge-modal-info {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .badge-modal-info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+      gap: 1rem;
+    }
+
+    .badge-modal-info-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-modal-info-value {
+      color: var(--text-dark);
+      text-align: right;
+      word-break: break-word;
     }
 
     .post-list,
@@ -355,6 +451,25 @@
         </div>
       </section>
 
+      <!-- 뱃지 상세 모달 -->
+      <div class="badge-modal" id="badgeModal">
+        <div class="badge-modal-content">
+          <button class="badge-modal-close" id="badgeModalClose">&times;</button>
+          <div class="badge-modal-icon" id="badgeModalIcon"></div>
+          <h3 class="badge-modal-name" id="badgeModalName"></h3>
+          <div class="badge-modal-info">
+            <div class="badge-modal-info-item">
+              <span class="badge-modal-info-label">획득 조건</span>
+              <span class="badge-modal-info-value" id="badgeModalCondition"></span>
+            </div>
+            <div class="badge-modal-info-item">
+              <span class="badge-modal-info-label">획득일자</span>
+              <span class="badge-modal-info-value" id="badgeModalEarnedAt"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 북마크 섹션 -->
       <section class="content-section" id="bookmarkSection">
         <h2 class="section-title">북마크</h2>
@@ -454,9 +569,15 @@
         const response = await fetch(`/api/user/badges?userId=${userId}`);
         const result = await response.json();
 
+        console.log('[뱃지 로드] API 응답:', result);
+        console.log('[뱃지 로드] 뱃지 개수:', result.data ? result.data.length : 0);
+
         if (response.ok && result.success) {
-          renderBadges(result.data || []);
+          const badges = result.data || [];
+          console.log('[뱃지 로드] 획득한 뱃지:', badges);
+          renderBadges(badges);
         } else {
+          console.warn('[뱃지 로드] API 오류:', result);
           renderBadges([]);
         }
       } catch (error) {
@@ -540,22 +661,107 @@
       const container = document.getElementById('badgeGrid');
       const emptyState = document.getElementById('badgeEmpty');
       
+      if (!container) {
+        console.error('뱃지 그리드 컨테이너를 찾을 수 없습니다.');
+        return;
+      }
+      
+      console.log('[뱃지 렌더링] 시작, 뱃지 개수:', badges ? badges.length : 0);
+      
+      // API에서 이미 획득한 뱃지만 반환하므로 필터링 불필요
       if (!badges || badges.length === 0) {
+        console.log('[뱃지 렌더링] 뱃지가 없습니다.');
         container.innerHTML = '';
-        emptyState.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'block';
         return;
       }
 
-      container.innerHTML = badges.map(badge => `
-        <div class="badge-card ${badge.earned ? '' : 'locked'}">
-          <div class="badge-icon">${badge.icon || '🏅'}</div>
-          <div class="badge-name">${badge.name || '뱃지'}</div>
-          <p class="badge-description">${badge.description || ''}</p>
-        </div>
-      `).join('');
+      // 기존 내용 완전히 제거
+      container.innerHTML = '';
+      
+      // 각 뱃지 카드 생성
+      badges.forEach((badge, index) => {
+        console.log(`[뱃지 렌더링] 뱃지 ${index + 1}:`, badge);
+        
+        // badge 객체를 안전하게 문자열로 변환
+        const badgeData = {
+          badgeId: badge.badgeId,
+          name: badge.name,
+          icon: badge.icon,
+          description: badge.description,
+          conditionType: badge.conditionType,
+          conditionValue: badge.conditionValue,
+          earnedAt: badge.earnedAt
+        };
+        
+        // 카드 요소 생성
+        const card = document.createElement('div');
+        card.className = 'badge-card';
+        card.onclick = () => showBadgeModal(badgeData);
+        
+        // 아이콘 설정 (SVG 또는 이모지)
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'badge-icon';
+        iconDiv.innerHTML = badge.icon || '🏅';
+        card.appendChild(iconDiv);
+        
+        // 컨테이너에 추가
+        container.appendChild(card);
+      });
 
-      emptyState.style.display = 'none';
+      console.log('[뱃지 렌더링] 완료, 렌더링된 카드 수:', container.children.length);
+      if (emptyState) emptyState.style.display = 'none';
     }
+
+    function showBadgeModal(badge) {
+      const modal = document.getElementById('badgeModal');
+      const modalIcon = document.getElementById('badgeModalIcon');
+      const modalName = document.getElementById('badgeModalName');
+      const modalCondition = document.getElementById('badgeModalCondition');
+      const modalEarnedAt = document.getElementById('badgeModalEarnedAt');
+
+      if (!modal || !modalIcon || !modalName || !modalCondition || !modalEarnedAt) {
+        console.error('모달 요소를 찾을 수 없습니다.');
+        return;
+      }
+
+      // 뱃지 정보 설정
+      modalIcon.innerHTML = badge.icon || '🏅';
+      modalName.textContent = badge.name || '뱃지';
+      
+      // 획득 조건 표시
+      const conditionText = badge.description || '';
+      modalCondition.textContent = conditionText;
+
+      // 획득일자 포맷팅
+      if (badge.earnedAt) {
+        const earnedDate = new Date(badge.earnedAt);
+        const formattedDate = earnedDate.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        modalEarnedAt.textContent = formattedDate;
+      } else {
+        modalEarnedAt.textContent = '-';
+      }
+
+      // 모달 표시
+      modal.classList.add('show');
+      
+      // body 스크롤 방지
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeBadgeModal() {
+      const modal = document.getElementById('badgeModal');
+      if (modal) {
+        modal.classList.remove('show');
+        // body 스크롤 복원
+        document.body.style.overflow = '';
+      }
+    }
+
 
     function renderBookmarks(bookmarks) {
       const container = document.getElementById('bookmarkList');
@@ -642,6 +848,10 @@
       await loadBadges(user.userId);
     }
 
+    // 모달 닫기 함수를 전역으로 노출
+    window.showBadgeModal = showBadgeModal;
+    window.closeBadgeModal = closeBadgeModal;
+
     document.addEventListener('DOMContentLoaded', async () => {
       const currentUser = getStoredUser();
 
@@ -668,6 +878,22 @@
           }
         }
       });
+
+      // 모달 닫기 이벤트 설정
+      const modalClose = document.getElementById('badgeModalClose');
+      const modal = document.getElementById('badgeModal');
+      
+      if (modalClose) {
+        modalClose.addEventListener('click', closeBadgeModal);
+      }
+      
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeBadgeModal();
+          }
+        });
+      }
 
       setupTabs();
       loadInitialData();

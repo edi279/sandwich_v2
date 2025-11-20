@@ -176,30 +176,58 @@ router.post('/', async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
+    console.log('[레시피 작성] 요청 데이터:', {
+      title: req.body.title ? '있음' : '없음',
+      content: req.body.content ? '있음' : '없음',
+      subcategory: req.body.subcategory,
+      userId: req.body.userId,
+      userIdType: typeof req.body.userId,
+      thumbnailUrl: req.body.thumbnailUrl
+    });
+    
     await connection.beginTransaction();
     
     const { title, content, subcategory, tags, authorName, thumbnailUrl, userId } = req.body;
     
     // 로그인 체크
     if (!userId) {
+      console.log('[레시피 작성] userId 없음');
+      await connection.rollback();
       return res.status(401).json({
         success: false,
         message: '로그인이 필요합니다.'
       });
     }
     
+    // userId를 정수로 변환
+    const userIdInt = parseInt(userId, 10);
+    if (isNaN(userIdInt)) {
+      console.log('[레시피 작성] userId 변환 실패:', userId);
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 사용자 ID입니다.'
+      });
+    }
+    
+    console.log('[레시피 작성] userId 변환 성공:', userIdInt);
+    
     // 사용자 존재 여부 확인
     const [userRows] = await connection.execute(
       'SELECT USER_ID FROM USER_TB WHERE USER_ID = ?',
-      [userId]
+      [userIdInt]
     );
     
     if (userRows.length === 0) {
+      console.log('[레시피 작성] 사용자 없음:', userIdInt);
+      await connection.rollback();
       return res.status(401).json({
         success: false,
         message: '유효하지 않은 사용자입니다.'
       });
     }
+    
+    console.log('[레시피 작성] 사용자 확인 완료:', userIdInt);
     
     // 입력값 검증
     if (!title || !content) {
@@ -236,20 +264,50 @@ router.post('/', async (req, res) => {
     const categoryId = parseInt(subcategory);
     
     // RECIPE_TB에 게시글 삽입 (AUTHOR_ID 포함)
+    console.log('[레시피 작성] 게시글 삽입 시작:', {
+      title: title?.substring(0, 50),
+      userIdInt,
+      authorName: authorName || '익명',
+      categoryId,
+      thumbnailUrl: normalizedThumbnailUrl
+    });
+    
     const [result] = await connection.execute(
       'INSERT INTO RECIPE_TB (TITLE, AUTHOR_ID, AUTHOR_NAME, CATEGORY, IMAGE_URL) VALUES (?, ?, ?, ?, ?)',
-      [title, userId, authorName || '익명', categoryId, normalizedThumbnailUrl]
+      [title, userIdInt, authorName || '익명', categoryId, normalizedThumbnailUrl]
     );
     
     const recipeId = result.insertId;
+    console.log('[레시피 작성] 게시글 삽입 완료, RECIPE_ID:', recipeId);
     
     // RECIPE_CONTENT_TB에 본문 삽입
+    console.log('[레시피 작성] 본문 삽입 시작');
     await connection.execute(
       'INSERT INTO RECIPE_CONTENT_TB (RECIPE_ID, CONTENT, TAGS) VALUES (?, ?, ?)',
       [recipeId, content, tags || '']
     );
+    console.log('[레시피 작성] 본문 삽입 완료');
     
+    // 뱃지 체크 (게시글 작성) - 오류가 발생해도 게시글 작성은 성공하도록 처리
+    let earnedBadges = [];
+    try {
+      console.log('[레시피 작성] 뱃지 체크 시작 - 사용자 ID:', userIdInt);
+      const badgeUtils = require('../utils/badges');
+      earnedBadges = await badgeUtils.checkPostBadges(connection, userIdInt, 1) || []; // 1 = 레시피
+      console.log('[레시피 작성] 뱃지 체크 완료, 획득한 뱃지 개수:', earnedBadges.length);
+      if (earnedBadges.length > 0) {
+        console.log('[레시피 작성] 획득한 뱃지 목록:', earnedBadges.map(b => b.badgeName || b.badgeId));
+      }
+    } catch (badgeError) {
+      console.error('[레시피 작성] 뱃지 체크 오류 (게시글 작성은 계속 진행):', badgeError);
+      console.error('[레시피 작성] 뱃지 체크 오류 상세:', badgeError.message);
+      console.error('[레시피 작성] 뱃지 체크 오류 스택:', badgeError.stack);
+      // 뱃지 체크 오류는 무시하고 게시글 작성은 계속 진행
+    }
+    
+    console.log('[레시피 작성] 트랜잭션 커밋 시작');
     await connection.commit();
+    console.log('[레시피 작성] 트랜잭션 커밋 완료');
     
     res.json({
       success: true,
@@ -257,15 +315,20 @@ router.post('/', async (req, res) => {
       data: {
         recipeId,
         categoryId,
-        thumbnailUrl: normalizedThumbnailUrl
+        thumbnailUrl: normalizedThumbnailUrl,
+        earnedBadges: earnedBadges || []
       }
     });
   } catch (error) {
     await connection.rollback();
-    console.error('레시피 작성 오류:', error);
+    console.error('[레시피 작성] 오류 발생:', error);
+    console.error('[레시피 작성] 오류 상세:', error.stack);
+    console.error('[레시피 작성] 오류 메시지:', error.message);
+    console.error('[레시피 작성] 오류 코드:', error.code);
     res.status(500).json({
       success: false,
-      message: '게시글 작성 중 오류가 발생했습니다.'
+      message: '게시글 작성 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     connection.release();
@@ -290,18 +353,31 @@ router.put('/:id', async (req, res) => {
       });
     }
     
+    // userId를 정수로 변환
+    const userIdInt = parseInt(userId, 10);
+    if (isNaN(userIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 사용자 ID입니다.'
+      });
+    }
+    
     // 사용자 존재 여부 확인
     const [userRows] = await connection.execute(
       'SELECT USER_ID FROM USER_TB WHERE USER_ID = ?',
-      [userId]
+      [userIdInt]
     );
     
     if (userRows.length === 0) {
+      console.log('[레시피 작성] 사용자 없음:', userIdInt);
+      await connection.rollback();
       return res.status(401).json({
         success: false,
         message: '유효하지 않은 사용자입니다.'
       });
     }
+    
+    console.log('[레시피 작성] 사용자 확인 완료:', userIdInt);
     
     // 입력값 검증
     if (!title || !content) {
@@ -348,7 +424,7 @@ router.put('/:id', async (req, res) => {
     }
     
     // 작성자 본인 확인 (AUTHOR_ID가 있는 경우)
-    if (existingRows[0].AUTHOR_ID && existingRows[0].AUTHOR_ID !== userId) {
+    if (existingRows[0].AUTHOR_ID && existingRows[0].AUTHOR_ID !== userIdInt) {
       return res.status(403).json({
         success: false,
         message: '본인이 작성한 게시글만 수정할 수 있습니다.'
@@ -360,7 +436,7 @@ router.put('/:id', async (req, res) => {
     // RECIPE_TB 업데이트 (AUTHOR_ID도 업데이트, 기존에 없었던 경우를 위해)
     await connection.execute(
       'UPDATE RECIPE_TB SET TITLE = ?, AUTHOR_ID = ?, AUTHOR_NAME = ?, CATEGORY = ?, IMAGE_URL = ? WHERE RECIPE_ID = ?',
-      [title, userId, authorName || '익명', categoryId, normalizedThumbnailUrl, id]
+      [title, userIdInt, authorName || '익명', categoryId, normalizedThumbnailUrl, id]
     );
     
     // RECIPE_CONTENT_TB 업데이트 (존재하면 업데이트, 없으면 INSERT)
@@ -395,9 +471,11 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('레시피 수정 오류:', error);
+    console.error('오류 상세:', error.stack);
     res.status(500).json({
       success: false,
-      message: '게시글 수정 중 오류가 발생했습니다.'
+      message: '게시글 수정 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     connection.release();

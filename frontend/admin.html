@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net;">
+  <title>관리자 페이지 - 샌냠</title>
+  <link rel="stylesheet" href="/assets/css/gnb.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="/assets/css/variables.css">
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/layout.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <style>
+    .admin-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .admin-main {
+      margin-left: var(--gnb-width);
+      flex: 1;
+      padding: 3rem 4rem;
+    }
+
+    .page-header {
+      margin-bottom: 3rem;
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary-pink);
+      letter-spacing: 2px;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .page-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .menu-tabs {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+
+    .menu-tab {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 999px;
+      background-color: transparent;
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .menu-tab:hover {
+      background-color: rgba(255, 107, 157, 0.08);
+      color: var(--primary-pink);
+    }
+
+    .menu-tab.active {
+      color: var(--primary-pink);
+      background-color: rgba(255, 107, 157, 0.12);
+    }
+
+    .content-section {
+      background-color: var(--bg-white);
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      margin-bottom: 2rem;
+      min-height: 400px;
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin: 0 0 1.5rem 0;
+    }
+
+    .search-form {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-pink);
+    }
+
+    .btn-search {
+      padding: 0.75rem 2rem;
+      background-color: var(--primary-pink);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-search:hover {
+      background-color: #ff4d8a;
+    }
+
+    .user-table, .post-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .user-table th, .user-table td,
+    .post-table th, .post-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .user-table th, .post-table th {
+      background-color: var(--soft-gray);
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .user-table tr:hover, .post-table tr:hover {
+      background-color: rgba(255, 107, 157, 0.05);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .status-badge.blocked {
+      background-color: #fee;
+      color: #c33;
+    }
+
+    .status-badge.withdrawn {
+      background-color: #eef;
+      color: #33c;
+    }
+
+    .status-badge.normal {
+      background-color: #efe;
+      color: #3c3;
+    }
+
+    .btn-action {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-block {
+      background-color: #fee;
+      color: #c33;
+    }
+
+    .btn-block:hover {
+      background-color: #fcc;
+    }
+
+    .btn-unblock {
+      background-color: #efe;
+      color: #3c3;
+    }
+
+    .btn-unblock:hover {
+      background-color: #cfc;
+    }
+
+    .btn-delete {
+      background-color: #fee;
+      color: #c33;
+    }
+
+    .btn-delete:hover {
+      background-color: #fcc;
+    }
+
+    .empty-state {
+      padding: 3rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      background-color: var(--soft-gray);
+      border-radius: 18px;
+      border: 1px dashed rgba(255, 107, 157, 0.3);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .pagination button {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border-color);
+      background-color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pagination button:hover {
+      background-color: var(--soft-gray);
+    }
+
+    .pagination button.active {
+      background-color: var(--primary-pink);
+      color: white;
+      border-color: var(--primary-pink);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .post-type-selector {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .post-type-btn {
+      padding: 0.75rem 1.5rem;
+      border: 2px solid var(--border-color);
+      background-color: white;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .post-type-btn.active {
+      background-color: var(--primary-pink);
+      color: white;
+      border-color: var(--primary-pink);
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div id="gnb-root"></div>
+
+    <main class="admin-main">
+      <header class="page-header">
+        <h1 class="page-title">관리자 페이지</h1>
+        <p class="page-subtitle">사용자 및 게시글 관리</p>
+      </header>
+
+      <div class="menu-tabs">
+        <button class="menu-tab active" data-tab="users">사용자 관리</button>
+        <button class="menu-tab" data-tab="posts">게시글 관리</button>
+      </div>
+
+      <!-- 사용자 관리 섹션 -->
+      <section id="users-section" class="content-section active">
+        <h2 class="section-title">사용자 검색 및 관리</h2>
+        
+        <div id="user-alert" class="alert"></div>
+
+        <form class="search-form" id="user-search-form">
+          <input 
+            type="text" 
+            class="search-input" 
+            id="user-search-input" 
+            placeholder="닉네임 또는 이메일로 검색..."
+            required
+          >
+          <button type="submit" class="btn-search">검색</button>
+        </form>
+
+        <div id="user-results">
+          <div class="empty-state">
+            <p>검색어를 입력하여 사용자를 검색하세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 게시글 관리 섹션 -->
+      <section id="posts-section" class="content-section">
+        <h2 class="section-title">게시글 관리</h2>
+        
+        <div id="post-alert" class="alert"></div>
+
+        <form class="search-form" id="post-search-form">
+          <input 
+            type="text" 
+            class="search-input" 
+            id="post-search-input" 
+            placeholder="제목 또는 작성자명으로 검색..."
+          >
+          <button type="submit" class="btn-search">검색</button>
+          <button type="button" class="btn-search" id="post-reset-btn" style="background-color: #6c757d;">초기화</button>
+        </form>
+
+        <div id="post-results">
+          <div class="empty-state">
+            <p>게시글 목록을 불러오는 중...</p>
+          </div>
+        </div>
+
+        <div class="pagination" id="post-pagination"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">게시글 삭제 확인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>정말로 이 게시글을 삭제하시겠습니까?</p>
+          <p class="text-muted">삭제된 게시글은 복구할 수 없습니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-btn">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/gnb.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script>
+    let currentPostPage = 1;
+    let currentPostKeyword = '';
+    let deletePostType = null;
+    let deletePostId = null;
+
+    // 관리자 이메일 확인
+    function getAdminEmail() {
+      try {
+        const raw = localStorage.getItem('sandwichUser');
+        if (raw) {
+          const user = JSON.parse(raw);
+          return user.email || null;
+        }
+      } catch (error) {
+        console.warn('저장된 사용자 정보를 불러오지 못했습니다.', error);
+      }
+      return null;
+    }
+
+    // 알림 표시
+    function showAlert(containerId, message, type = 'success') {
+      const alert = document.getElementById(containerId);
+      alert.textContent = message;
+      alert.className = `alert alert-${type} show`;
+      setTimeout(() => {
+        alert.classList.remove('show');
+      }, 3000);
+    }
+
+    // 탭 전환
+    document.querySelectorAll('.menu-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        
+        tab.classList.add('active');
+        const sectionId = `${tab.dataset.tab}-section`;
+        document.getElementById(sectionId).classList.add('active');
+      });
+    });
+
+    // 사용자 검색
+    document.getElementById('user-search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const keyword = document.getElementById('user-search-input').value.trim();
+      
+      if (!keyword) {
+        showAlert('user-alert', '검색어를 입력해주세요.', 'error');
+        return;
+      }
+
+      const adminEmail = getAdminEmail();
+      if (!adminEmail) {
+        showAlert('user-alert', '관리자 이메일이 필요합니다. 로그인해주세요.', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/users/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: adminEmail, keyword })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          showAlert('user-alert', result.message || '사용자 검색에 실패했습니다.', 'error');
+          return;
+        }
+
+        renderUserResults(result.data);
+      } catch (error) {
+        console.error('사용자 검색 오류:', error);
+        showAlert('user-alert', '사용자 검색 중 오류가 발생했습니다.', 'error');
+      }
+    });
+
+    // 사용자 결과 렌더링
+    function renderUserResults(users) {
+      const container = document.getElementById('user-results');
+
+      if (!users || users.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>검색 결과가 없습니다.</p></div>';
+        return;
+      }
+
+      let html = '<table class="user-table"><thead><tr><th>ID</th><th>이메일</th><th>닉네임</th><th>광고 수신</th><th>상태</th><th>가입일</th><th>작업</th></tr></thead><tbody>';
+
+      users.forEach(user => {
+        const statusBadges = [];
+        if (user.blocked) {
+          statusBadges.push('<span class="status-badge blocked">차단</span>');
+        }
+        if (user.withdrawn) {
+          statusBadges.push('<span class="status-badge withdrawn">탈퇴</span>');
+        }
+        if (statusBadges.length === 0) {
+          statusBadges.push('<span class="status-badge normal">정상</span>');
+        }
+
+        html += `
+          <tr>
+            <td>${user.userId}</td>
+            <td>${user.email}</td>
+            <td>${user.nickname}</td>
+            <td>${user.eventOptIn ? 'Y' : 'N'}</td>
+            <td>${statusBadges.join(' ')}</td>
+            <td>${new Date(user.createdAt).toLocaleDateString('ko-KR')}</td>
+            <td>
+              ${user.blocked 
+                ? `<button class="btn-action btn-unblock" onclick="toggleUserBlock(${user.userId}, false)">차단 해제</button>`
+                : `<button class="btn-action btn-block" onclick="toggleUserBlock(${user.userId}, true)">차단</button>`
+              }
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // 사용자 차단/해제
+    async function toggleUserBlock(userId, blocked) {
+      const adminEmail = getAdminEmail();
+      if (!adminEmail) {
+        showAlert('user-alert', '관리자 이메일이 필요합니다. 로그인해주세요.', 'error');
+        return;
+      }
+
+      if (!confirm(blocked ? '이 사용자를 차단하시겠습니까?' : '이 사용자의 차단을 해제하시겠습니까?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/users/${userId}/block`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: adminEmail, blocked })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          showAlert('user-alert', result.message || '차단 처리에 실패했습니다.', 'error');
+          return;
+        }
+
+        showAlert('user-alert', result.message, 'success');
+        
+        // 검색 결과 새로고침
+        const keyword = document.getElementById('user-search-input').value.trim();
+        if (keyword) {
+          document.getElementById('user-search-form').dispatchEvent(new Event('submit'));
+        }
+      } catch (error) {
+        console.error('사용자 차단 오류:', error);
+        showAlert('user-alert', '차단 처리 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // 게시글 검색
+    document.getElementById('post-search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentPostKeyword = document.getElementById('post-search-input').value.trim();
+      currentPostPage = 1;
+      loadPosts();
+    });
+
+    // 검색 초기화
+    document.getElementById('post-reset-btn').addEventListener('click', () => {
+      document.getElementById('post-search-input').value = '';
+      currentPostKeyword = '';
+      currentPostPage = 1;
+      loadPosts();
+    });
+
+    // 게시글 목록 로드
+    async function loadPosts(page = 1) {
+      const adminEmail = getAdminEmail();
+      if (!adminEmail) {
+        showAlert('post-alert', '관리자 이메일이 필요합니다. 로그인해주세요.', 'error');
+        return;
+      }
+
+      currentPostPage = page;
+
+      try {
+        const response = await fetch('/api/admin/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: adminEmail, 
+            page: currentPostPage, 
+            limit: 20,
+            keyword: currentPostKeyword
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          showAlert('post-alert', result.message || '게시글 목록을 불러오는데 실패했습니다.', 'error');
+          return;
+        }
+
+        renderPostResults(result.data);
+        renderPagination(result.data);
+      } catch (error) {
+        console.error('게시글 목록 로드 오류:', error);
+        showAlert('post-alert', '게시글 목록을 불러오는 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // 게시글 결과 렌더링
+    function renderPostResults(data) {
+      const container = document.getElementById('post-results');
+
+      if (!data.posts || data.posts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>게시글이 없습니다.</p></div>';
+        return;
+      }
+
+      let html = '<table class="post-table"><thead><tr><th>타입</th><th>ID</th><th>제목</th><th>작성자</th><th>카테고리</th><th>조회수</th><th>작성일</th><th>작업</th></tr></thead><tbody>';
+
+      data.posts.forEach(post => {
+        html += `
+          <tr>
+            <td><span class="status-badge ${post.postType === 1 ? 'normal' : 'withdrawn'}" style="background-color: ${post.postType === 1 ? '#e3f2fd' : '#fff3e0'}; color: ${post.postType === 1 ? '#1976d2' : '#f57c00'};">${post.postTypeName || (post.postType === 1 ? '레시피' : '정보공유')}</span></td>
+            <td>${post.postId}</td>
+            <td>${post.title}</td>
+            <td>${post.authorName || '익명'}</td>
+            <td>${post.categoryName || '-'}</td>
+            <td>${post.views || 0}</td>
+            <td>${new Date(post.createdAt).toLocaleDateString('ko-KR')}</td>
+            <td>
+              <button class="btn-action btn-delete" onclick="confirmDeletePost(${post.postType}, ${post.postId})">삭제</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // 페이지네이션 렌더링
+    function renderPagination(data) {
+      const container = document.getElementById('post-pagination');
+      
+      if (data.totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+
+      // 이전 페이지
+      html += `<button ${currentPostPage === 1 ? 'disabled' : ''} onclick="loadPosts(${currentPostPage - 1})">이전</button>`;
+
+      // 페이지 번호
+      for (let i = 1; i <= data.totalPages; i++) {
+        if (i === 1 || i === data.totalPages || (i >= currentPostPage - 2 && i <= currentPostPage + 2)) {
+          html += `<button class="${i === currentPostPage ? 'active' : ''}" onclick="loadPosts(${i})">${i}</button>`;
+        } else if (i === currentPostPage - 3 || i === currentPostPage + 3) {
+          html += '<span>...</span>';
+        }
+      }
+
+      // 다음 페이지
+      html += `<button ${currentPostPage === data.totalPages ? 'disabled' : ''} onclick="loadPosts(${currentPostPage + 1})">다음</button>`;
+
+      container.innerHTML = html;
+    }
+
+    // 게시글 삭제 확인
+    function confirmDeletePost(postType, postId) {
+      deletePostType = postType;
+      deletePostId = postId;
+      const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      modal.show();
+    }
+
+    // 게시글 삭제 실행
+    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+      const adminEmail = getAdminEmail();
+      if (!adminEmail) {
+        showAlert('post-alert', '관리자 이메일이 필요합니다. 로그인해주세요.', 'error');
+        return;
+      }
+
+      if (!deletePostType || !deletePostId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/posts/${deletePostType}/${deletePostId}/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: adminEmail })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          showAlert('post-alert', result.message || '게시글 삭제에 실패했습니다.', 'error');
+          return;
+        }
+
+        showAlert('post-alert', result.message, 'success');
+        
+        // 모달 닫기
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+        modal.hide();
+        
+        // 목록 새로고침
+        loadPosts(currentPostPage);
+      } catch (error) {
+        console.error('게시글 삭제 오류:', error);
+        showAlert('post-alert', '게시글 삭제 중 오류가 발생했습니다.', 'error');
+      }
+    });
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPosts();
+    });
+  </script>
+</body>
+</html>
+

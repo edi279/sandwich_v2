@@ -111,39 +111,91 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // 댓글 삽입 (트리거가 게시글 존재 여부를 자동으로 검증)
-    const [result] = await pool.execute(
-      `INSERT INTO COMMENT_TB (POST_TYPE, POST_ID, CONTENT, AUTHOR_ID, AUTHOR_NAME) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [postTypeId, postId, content, userId, authorName || userRows[0].NICKNAME]
-    );
+    // 게시글 작성자 정보 조회 (뱃지 체크용)
+    let postAuthorId = null;
+    if (postTypeId === 1) {
+      const [recipeRows] = await pool.execute(
+        'SELECT AUTHOR_ID FROM RECIPE_TB WHERE RECIPE_ID = ? AND DELETED_YN = ?',
+        [postId, 'N']
+      );
+      if (recipeRows.length > 0) {
+        postAuthorId = recipeRows[0].AUTHOR_ID;
+      }
+    } else if (postTypeId === 2) {
+      const [tipRows] = await pool.execute(
+        'SELECT AUTHOR_ID FROM TIP_TB WHERE TIP_ID = ? AND DELETED_YN = ?',
+        [postId, 'N']
+      );
+      if (tipRows.length > 0) {
+        postAuthorId = tipRows[0].AUTHOR_ID;
+      }
+    }
+
+    const connection = await pool.getConnection();
     
-    // 생성된 댓글 조회
-    const [newComment] = await pool.execute(
-      `SELECT COMMENT_ID, POST_TYPE, POST_ID, CONTENT, AUTHOR_ID, AUTHOR_NAME, 
-              DELETED_YN, CREATED_AT, UPDATED_AT
-       FROM COMMENT_TB 
-       WHERE COMMENT_ID = ?`,
-      [result.insertId]
-    );
-    
-    const comment = newComment[0];
-    const formattedComment = {
-      ...comment,
-      CREATED_AT_FORMATTED: new Date(comment.CREATED_AT).toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).replace(/\. /g, '.').replace(/\.$/, '')
-    };
-    
-    res.json({
-      success: true,
-      message: '댓글이 작성되었습니다.',
-      data: formattedComment
-    });
+    try {
+      await connection.beginTransaction();
+      
+      // 댓글 삽입 (트리거가 게시글 존재 여부를 자동으로 검증)
+      const [result] = await connection.execute(
+        `INSERT INTO COMMENT_TB (POST_TYPE, POST_ID, CONTENT, AUTHOR_ID, AUTHOR_NAME) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [postTypeId, postId, content, userId, authorName || userRows[0].NICKNAME]
+      );
+      
+      // 뱃지 체크
+      const badgeUtils = require('../utils/badges');
+      const earnedBadges = [];
+      
+      // CW001: 댓글 작성 뱃지 체크
+      console.log(`[댓글 작성] 사용자 ${userId}의 뱃지 체크 시작`);
+      const commentWriteBadges = await badgeUtils.checkCommentWriteBadges(connection, userId);
+      console.log(`[댓글 작성] 획득한 뱃지:`, commentWriteBadges);
+      if (commentWriteBadges && commentWriteBadges.length > 0) {
+        earnedBadges.push(...commentWriteBadges);
+      }
+      
+      // CG001: 댓글 받을 때 뱃지 체크 (게시글 작성자에게)
+      if (postAuthorId && postAuthorId !== userId) {
+        const commentGetBadges = await badgeUtils.checkCommentGetBadges(connection, postAuthorId, postTypeId, postId);
+        earnedBadges.push(...commentGetBadges);
+      }
+      
+      await connection.commit();
+      
+      // 생성된 댓글 조회
+      const [newComment] = await pool.execute(
+        `SELECT COMMENT_ID, POST_TYPE, POST_ID, CONTENT, AUTHOR_ID, AUTHOR_NAME, 
+                DELETED_YN, CREATED_AT, UPDATED_AT
+         FROM COMMENT_TB 
+         WHERE COMMENT_ID = ?`,
+        [result.insertId]
+      );
+      
+      const comment = newComment[0];
+      const formattedComment = {
+        ...comment,
+        CREATED_AT_FORMATTED: new Date(comment.CREATED_AT).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).replace(/\. /g, '.').replace(/\.$/, '')
+      };
+      
+      res.json({
+        success: true,
+        message: '댓글이 작성되었습니다.',
+        data: formattedComment,
+        earnedBadges: earnedBadges || []
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('댓글 작성 오류:', error);
     

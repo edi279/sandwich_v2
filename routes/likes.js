@@ -88,6 +88,26 @@ router.post('/toggle', async (req, res) => {
     let liked = false;
     let count = 0;
 
+    // 게시글 작성자 정보 조회 (뱃지 체크용)
+    let postAuthorId = null;
+    if (parseInt(postType) === 1) {
+      const [recipeRows] = await connection.query(
+        'SELECT AUTHOR_ID FROM RECIPE_TB WHERE RECIPE_ID = ? AND DELETED_YN = ?',
+        [parseInt(postId), 'N']
+      );
+      if (recipeRows.length > 0) {
+        postAuthorId = recipeRows[0].AUTHOR_ID;
+      }
+    } else if (parseInt(postType) === 2) {
+      const [tipRows] = await connection.query(
+        'SELECT AUTHOR_ID FROM TIP_TB WHERE TIP_ID = ? AND DELETED_YN = ?',
+        [parseInt(postId), 'N']
+      );
+      if (tipRows.length > 0) {
+        postAuthorId = tipRows[0].AUTHOR_ID;
+      }
+    }
+
     if (existing.length > 0) {
       // 추천 삭제
       await connection.query(
@@ -111,12 +131,29 @@ router.post('/toggle', async (req, res) => {
     );
     count = countRows[0].count || 0;
 
+    // 뱃지 체크
+    const badgeUtils = require('../utils/badges');
+    const earnedBadges = [];
+    
+    if (liked) {
+      // LW001: 추천 누적 뱃지 체크 (추천한 사용자에게)
+      const likeWriteBadges = await badgeUtils.checkLikeWriteBadges(connection, parseInt(userId));
+      earnedBadges.push(...likeWriteBadges);
+      
+      // LG001: 추천 받을 때 뱃지 체크 (게시글 작성자에게)
+      if (postAuthorId && postAuthorId !== parseInt(userId)) {
+        const likeGetBadges = await badgeUtils.checkLikeGetBadges(connection, postAuthorId, parseInt(postType), parseInt(postId));
+        earnedBadges.push(...likeGetBadges);
+      }
+    }
+
     await connection.commit();
 
     return res.status(200).json({
       success: true,
       liked,
-      count
+      count,
+      earnedBadges: earnedBadges || []
     });
   } catch (error) {
     await connection.rollback();

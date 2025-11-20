@@ -166,6 +166,21 @@ router.put('/profile', async (req, res) => {
   }
 });
 
+// 뱃지 타입 데이터 확인 API (디버깅용)
+router.get('/badges/check-types', async (req, res) => {
+  try {
+    const [badgeTypes] = await pool.query('SELECT BADGE_TYPE_ID, BADGE_NAME, CONDITION_TYPE, CONDITION_VALUE FROM BADGE_TYPE_TB ORDER BY BADGE_TYPE_ID');
+    return res.status(200).json({
+      success: true,
+      data: badgeTypes,
+      count: badgeTypes.length
+    });
+  } catch (error) {
+    console.error('뱃지 타입 조회 오류:', error);
+    return res.status(500).json({ success: false, message: '뱃지 타입 조회 중 오류가 발생했습니다.' });
+  }
+});
+
 // 뱃지 목록 조회 API
 router.get('/badges', async (req, res) => {
   const { userId } = req.query;
@@ -175,31 +190,37 @@ router.get('/badges', async (req, res) => {
   }
 
   try {
-    // 모든 뱃지 종류 조회
-    const [badgeTypes] = await pool.query('SELECT * FROM BADGE_TYPE_TB ORDER BY BADGE_TYPE_ID');
-
-    // 사용자가 획득한 뱃지 조회
+    // 사용자가 획득한 뱃지 조회 (획득일자 포함)
     const [userBadges] = await pool.query(
-      'SELECT BADGE_TYPE_ID FROM USER_BADGE_TB WHERE USER_ID = ?',
+      `SELECT 
+        ub.BADGE_TYPE_ID, 
+        ub.EARNED_AT,
+        bt.BADGE_NAME,
+        bt.BADGE_ICON,
+        bt.BADGE_DESCRIPTION,
+        bt.CONDITION_TYPE,
+        bt.CONDITION_VALUE
+      FROM USER_BADGE_TB ub
+      INNER JOIN BADGE_TYPE_TB bt ON ub.BADGE_TYPE_ID = bt.BADGE_TYPE_ID
+      WHERE ub.USER_ID = ?
+      ORDER BY ub.EARNED_AT DESC`,
       [userId]
     );
 
-    const earnedBadgeIds = new Set(userBadges.map(ub => ub.BADGE_TYPE_ID));
-
-    // 뱃지 목록에 획득 여부 추가
-    const badges = badgeTypes.map(badge => ({
+    // 획득한 뱃지만 반환
+    const earnedBadges = userBadges.map(badge => ({
       badgeId: badge.BADGE_TYPE_ID,
       name: badge.BADGE_NAME,
       icon: badge.BADGE_ICON || '🏅',
       description: badge.BADGE_DESCRIPTION || '',
-      earned: earnedBadgeIds.has(badge.BADGE_TYPE_ID),
       conditionType: badge.CONDITION_TYPE,
-      conditionValue: badge.CONDITION_VALUE
+      conditionValue: badge.CONDITION_VALUE,
+      earnedAt: badge.EARNED_AT
     }));
 
     return res.status(200).json({
       success: true,
-      data: badges
+      data: earnedBadges
     });
   } catch (error) {
     console.error('뱃지 조회 오류:', error);

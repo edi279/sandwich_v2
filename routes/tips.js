@@ -189,16 +189,35 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // 사용자 존재 여부 확인
+    // userId를 정수로 변환
+    const userIdInt = parseInt(userId, 10);
+    if (isNaN(userIdInt)) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 사용자 ID입니다.'
+      });
+    }
+    
+    // 사용자 존재 여부 및 차단 여부 확인
     const [userRows] = await connection.execute(
-      'SELECT USER_ID FROM USER_TB WHERE USER_ID = ?',
-      [userId]
+      'SELECT USER_ID, BLOCKED_YN FROM USER_TB WHERE USER_ID = ?',
+      [userIdInt]
     );
     
     if (userRows.length === 0) {
       return res.status(401).json({
         success: false,
         message: '유효하지 않은 사용자입니다.'
+      });
+    }
+
+    // 차단된 사용자 확인
+    if (userRows[0].BLOCKED_YN === 'Y') {
+      await connection.rollback();
+      return res.status(403).json({
+        success: false,
+        message: '차단된 사용자는 게시글을 작성할 수 없습니다.'
       });
     }
     
@@ -223,7 +242,7 @@ router.post('/', async (req, res) => {
     // TIP_TB에 게시글 삽입 (AUTHOR_ID 포함)
     const [result] = await connection.execute(
       'INSERT INTO TIP_TB (TITLE, AUTHOR_ID, AUTHOR_NAME, CATEGORY) VALUES (?, ?, ?, ?)',
-      [title, userId, authorName || '익명', categoryId]
+      [title, userIdInt, authorName || '익명', categoryId]
     );
     
     const tipId = result.insertId;
@@ -234,6 +253,16 @@ router.post('/', async (req, res) => {
       [tipId, content, tags || '']
     );
     
+    // 뱃지 체크 (게시글 작성) - 오류가 발생해도 게시글 작성은 성공하도록 처리
+    let earnedBadges = [];
+    try {
+      const badgeUtils = require('../utils/badges');
+      earnedBadges = await badgeUtils.checkPostBadges(connection, userIdInt, 2) || []; // 2 = 정보공유
+    } catch (badgeError) {
+      console.error('뱃지 체크 오류 (게시글 작성은 계속 진행):', badgeError);
+      // 뱃지 체크 오류는 무시하고 게시글 작성은 계속 진행
+    }
+    
     await connection.commit();
     
     res.json({
@@ -241,15 +270,18 @@ router.post('/', async (req, res) => {
       message: '게시글이 작성되었습니다.',
       data: {
         tipId,
-        categoryId
+        categoryId,
+        earnedBadges: earnedBadges || []
       }
     });
   } catch (error) {
     await connection.rollback();
     console.error('정보 공유 작성 오류:', error);
+    console.error('오류 상세:', error.stack);
     res.status(500).json({
       success: false,
-      message: '게시글 작성 중 오류가 발생했습니다.'
+      message: '게시글 작성 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     connection.release();
@@ -274,10 +306,19 @@ router.put('/:id', async (req, res) => {
       });
     }
     
+    // userId를 정수로 변환
+    const userIdInt = parseInt(userId, 10);
+    if (isNaN(userIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 사용자 ID입니다.'
+      });
+    }
+    
     // 사용자 존재 여부 확인
     const [userRows] = await connection.execute(
       'SELECT USER_ID FROM USER_TB WHERE USER_ID = ?',
-      [userId]
+      [userIdInt]
     );
     
     if (userRows.length === 0) {
@@ -316,7 +357,7 @@ router.put('/:id', async (req, res) => {
     }
     
     // 작성자 본인 확인 (AUTHOR_ID가 있는 경우)
-    if (existingRows[0].AUTHOR_ID && existingRows[0].AUTHOR_ID !== userId) {
+    if (existingRows[0].AUTHOR_ID && existingRows[0].AUTHOR_ID !== userIdInt) {
       return res.status(403).json({
         success: false,
         message: '본인이 작성한 게시글만 수정할 수 있습니다.'
@@ -328,7 +369,7 @@ router.put('/:id', async (req, res) => {
     // TIP_TB 업데이트 (AUTHOR_ID도 업데이트, 기존에 없었던 경우를 위해)
     await connection.execute(
       'UPDATE TIP_TB SET TITLE = ?, AUTHOR_ID = ?, AUTHOR_NAME = ?, CATEGORY = ? WHERE TIP_ID = ?',
-      [title, userId, authorName || '익명', categoryId, id]
+      [title, userIdInt, authorName || '익명', categoryId, id]
     );
     
     // TIP_CONTENT_TB 업데이트 (존재하면 업데이트, 없으면 INSERT)
@@ -362,9 +403,11 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('정보 공유 수정 오류:', error);
+    console.error('오류 상세:', error.stack);
     res.status(500).json({
       success: false,
-      message: '게시글 수정 중 오류가 발생했습니다.'
+      message: '게시글 수정 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     connection.release();
