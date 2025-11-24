@@ -875,6 +875,14 @@ function checkLogin() {
     window.location.href = '/login.html';
     return false;
   }
+  
+  // 차단된 사용자 확인
+  if (user.blocked === true) {
+    alert('차단된 사용자는 게시글을 작성할 수 없습니다.');
+    window.location.href = '/home.html';
+    return false;
+  }
+  
   return true;
 }
 

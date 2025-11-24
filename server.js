@@ -38,6 +38,41 @@ app.use(express.static(path.join(__dirname, 'frontend'), {
 // 업로드된 파일 서빙
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// 관리자 페이지 접근 제한 미들웨어
+// nimda-site.html 요청을 가로채서 관리자가 아니면 404 페이지로 리디렉션
+app.get('/nimda-site.html', async (req, res) => {
+  try {
+    // 쿠키나 세션에서 이메일 확인 (현재는 프론트엔드에서 localStorage 사용)
+    // 서버 측에서는 nimda-site.html을 정적 파일로 서빙하되,
+    // 프론트엔드에서 페이지 로드 시 관리자 확인 후 리디렉션하도록 함
+    
+    // 여기서는 항상 파일을 제공하고, 프론트엔드에서 관리자 확인
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.sendFile(path.join(__dirname, 'frontend', 'nimda-site.html'));
+  } catch (error) {
+    console.error('관리자 페이지 접근 오류:', error);
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html lang="ko">
+      <head>
+        <meta charset="utf-8">
+        <meta http-equiv="refresh" content="0;url=/home.html">
+        <title>페이지를 찾을 수 없습니다</title>
+        <script>
+          window.location.href = '/home.html';
+        </script>
+      </head>
+      <body>
+        <h1>페이지를 찾을 수 없습니다</h1>
+        <p>홈으로 이동 중...</p>
+      </body>
+      </html>
+    `);
+  }
+});
+
 // API 라우트
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/tips', tipRoutes);

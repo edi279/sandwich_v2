@@ -4,8 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 업로드 디렉토리 생성
-const uploadDir = path.join(__dirname, '../uploads/images');
+// 업로드 디렉토리 생성 (프로필 이미지용)
+const uploadDir = path.join(__dirname, '../uploads/profile');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -54,7 +54,7 @@ router.post('/image', upload.single('image'), (req, res) => {
     }
     
     // 업로드된 파일의 URL 반환
-    const fileUrl = `/uploads/images/${req.file.filename}`;
+    const fileUrl = `/uploads/profile/${req.file.filename}`;
     
     res.json({
       success: true,

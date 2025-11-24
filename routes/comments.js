@@ -98,9 +98,9 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // 사용자 존재 여부 확인
+    // 사용자 존재 여부 및 차단 여부 확인
     const [userRows] = await pool.execute(
-      'SELECT USER_ID, NICKNAME FROM USER_TB WHERE USER_ID = ?',
+      'SELECT USER_ID, NICKNAME, BLOCKED_YN FROM USER_TB WHERE USER_ID = ?',
       [userId]
     );
     
@@ -108,6 +108,14 @@ router.post('/', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    // 차단된 사용자 확인
+    if (userRows[0].BLOCKED_YN === 'Y') {
+      return res.status(403).json({
+        success: false,
+        message: '차단된 사용자는 댓글을 작성할 수 없습니다.'
       });
     }
     

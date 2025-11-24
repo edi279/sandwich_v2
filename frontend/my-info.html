@@ -252,6 +252,11 @@
           <div class="profile-info">
             <h3 class="profile-nickname" id="profileNickname">사용자</h3>
             <p class="profile-email" id="profileEmail">user@example.com</p>
+            <div id="blockedWarning" style="display: none; margin-top: 1rem; padding: 1rem; background-color: #fee; border: 1px solid #fcc; border-radius: 8px;">
+              <p style="color: #c33; margin: 0; font-size: 0.9rem; font-weight: 600;">
+                *운영 정책 위반으로 차단되었습니다. 자세한 사항은 관리자에게 문의 바랍니다.
+              </p>
+            </div>
           </div>
         </div>
         <form class="profile-form" id="profileForm">
@@ -301,6 +306,13 @@
       document.getElementById('profileNickname').textContent = nickname;
       document.getElementById('profileEmail').textContent = email;
       document.getElementById('nicknameInput').value = nickname;
+
+      // 차단 상태 표시
+      const blockedWarning = document.getElementById('blockedWarning');
+      const isBlocked = user.blocked === true;
+      if (blockedWarning) {
+        blockedWarning.style.display = isBlocked ? 'block' : 'none';
+      }
 
       // 프로필 이미지 설정
       const avatarEl = document.getElementById('profileAvatar');

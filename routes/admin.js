@@ -3,6 +3,44 @@ const { pool } = require('../config/database');
 
 const router = express.Router();
 
+// 관리자 페이지 접근 확인 API (프론트엔드에서 사용)
+router.post('/check-access', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: '이메일이 필요합니다.' });
+    }
+
+    // ADMIN_TB 테이블 존재 여부 확인
+    try {
+      const [admins] = await pool.query('SELECT ADMIN_ID, EMAIL FROM ADMIN_TB WHERE EMAIL = ?', [email]);
+      
+      if (admins.length === 0) {
+        return res.status(403).json({ success: false, message: '관리자 권한이 없습니다.' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: '관리자 권한이 확인되었습니다.',
+        data: { adminId: admins[0].ADMIN_ID, email: admins[0].EMAIL }
+      });
+    } catch (tableError) {
+      // 테이블이 없는 경우 에러 처리
+      if (tableError.code === 'ER_NO_SUCH_TABLE') {
+        return res.status(500).json({ 
+          success: false, 
+          message: '관리자 테이블이 존재하지 않습니다.' 
+        });
+      }
+      throw tableError;
+    }
+  } catch (error) {
+    console.error('관리자 접근 확인 오류:', error);
+    return res.status(500).json({ success: false, message: '관리자 접근 확인 중 오류가 발생했습니다.' });
+  }
+});
+
 // 관리자 인증 미들웨어
 const checkAdmin = async (req, res, next) => {
   try {
@@ -39,21 +77,34 @@ const checkAdmin = async (req, res, next) => {
   }
 };
 
-// 사용자 검색 (닉네임, 이메일)
-router.post('/users/search', checkAdmin, async (req, res) => {
+// 사용자 목록 조회 (관리자용) - 전체 목록 및 검색
+router.post('/users', checkAdmin, async (req, res) => {
   try {
-    const { keyword } = req.body;
+    console.log('[관리자] 사용자 목록 조회 요청:', req.body);
+    const { page = 1, limit = 20, keyword = '' } = req.body;
 
-    if (!keyword || keyword.trim() === '') {
-      return res.status(400).json({ success: false, message: '검색어를 입력해주세요.' });
-    }
-
-    const searchKeyword = `%${keyword.trim()}%`;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+    const searchKeyword = keyword.trim() ? `%${keyword.trim()}%` : null;
 
     // 필드 존재 여부 확인 후 쿼리 실행
     try {
-      const [users] = await pool.query(
-        `SELECT 
+      // 전체 개수 조회
+      let countQuery = 'SELECT COUNT(*) as total FROM USER_TB';
+      let countParams = [];
+      
+      if (searchKeyword) {
+        countQuery += ' WHERE (NICKNAME LIKE ? OR EMAIL LIKE ?)';
+        countParams = [searchKeyword, searchKeyword];
+      }
+
+      const [countResult] = await pool.query(countQuery, countParams);
+      const totalCount = countResult[0].total || 0;
+
+      // 사용자 목록 조회
+      let userQuery = `
+        SELECT 
           USER_ID,
           EMAIL,
           NICKNAME,
@@ -62,11 +113,18 @@ router.post('/users/search', checkAdmin, async (req, res) => {
           COALESCE(BLOCKED_YN, 'N') as BLOCKED_YN,
           CREATED_AT
         FROM USER_TB
-        WHERE (NICKNAME LIKE ? OR EMAIL LIKE ?)
-        ORDER BY CREATED_AT DESC
-        LIMIT 100`,
-        [searchKeyword, searchKeyword]
-      );
+      `;
+      let userParams = [];
+
+      if (searchKeyword) {
+        userQuery += ' WHERE (NICKNAME LIKE ? OR EMAIL LIKE ?)';
+        userParams.push(searchKeyword, searchKeyword);
+      }
+
+      userQuery += ' ORDER BY CREATED_AT DESC LIMIT ? OFFSET ?';
+      userParams.push(limitNum, offset);
+
+      const [users] = await pool.query(userQuery, userParams);
 
       const userList = users.map(user => ({
         userId: user.USER_ID,
@@ -80,13 +138,30 @@ router.post('/users/search', checkAdmin, async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        data: userList
+        data: {
+          users: userList,
+          totalCount,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(totalCount / limitNum)
+        }
       });
     } catch (queryError) {
       // 필드가 없는 경우를 대비한 대체 쿼리
       if (queryError.code === 'ER_BAD_FIELD_ERROR') {
-        const [users] = await pool.query(
-          `SELECT 
+        let countQuery = 'SELECT COUNT(*) as total FROM USER_TB';
+        let countParams = [];
+        
+        if (searchKeyword) {
+          countQuery += ' WHERE (NICKNAME LIKE ? OR EMAIL LIKE ?)';
+          countParams = [searchKeyword, searchKeyword];
+        }
+
+        const [countResult] = await pool.query(countQuery, countParams);
+        const totalCount = countResult[0].total || 0;
+
+        let userQuery = `
+          SELECT 
             USER_ID,
             EMAIL,
             NICKNAME,
@@ -95,11 +170,18 @@ router.post('/users/search', checkAdmin, async (req, res) => {
             'N' as BLOCKED_YN,
             CREATED_AT
           FROM USER_TB
-          WHERE (NICKNAME LIKE ? OR EMAIL LIKE ?)
-          ORDER BY CREATED_AT DESC
-          LIMIT 100`,
-          [searchKeyword, searchKeyword]
-        );
+        `;
+        let userParams = [];
+
+        if (searchKeyword) {
+          userQuery += ' WHERE (NICKNAME LIKE ? OR EMAIL LIKE ?)';
+          userParams.push(searchKeyword, searchKeyword);
+        }
+
+        userQuery += ' ORDER BY CREATED_AT DESC LIMIT ? OFFSET ?';
+        userParams.push(limitNum, offset);
+
+        const [users] = await pool.query(userQuery, userParams);
 
         const userList = users.map(user => ({
           userId: user.USER_ID,
@@ -113,14 +195,20 @@ router.post('/users/search', checkAdmin, async (req, res) => {
 
         return res.status(200).json({
           success: true,
-          data: userList
+          data: {
+            users: userList,
+            totalCount,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(totalCount / limitNum)
+          }
         });
       }
       throw queryError;
     }
   } catch (error) {
-    console.error('사용자 검색 오류:', error);
-    return res.status(500).json({ success: false, message: '사용자 검색 중 오류가 발생했습니다.' });
+    console.error('사용자 목록 조회 오류:', error);
+    return res.status(500).json({ success: false, message: '사용자 목록 조회 중 오류가 발생했습니다.' });
   }
 });
 

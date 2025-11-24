@@ -126,6 +126,12 @@
             console.warn('사용자 정보를 저장하지 못했습니다.', error);
           }
         }
+        
+        // 차단된 사용자 확인
+        if (result.blocked) {
+          alert('차단된 회원입니다. 관리자에게 문의하세요.');
+        }
+        
         setTimeout(() => {
           window.location.href = '/home.html';
         }, 800);
@@ -173,6 +179,12 @@
             console.warn('사용자 정보를 저장하지 못했습니다.', error);
           }
         }
+        
+        // 차단된 사용자 확인
+        if (result.blocked) {
+          alert('차단된 회원입니다. 관리자에게 문의하세요.');
+        }
+        
         setTimeout(() => {
           window.location.href = '/home.html';
         }, 800);

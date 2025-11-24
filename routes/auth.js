@@ -39,7 +39,8 @@ const formatUserResponse = (user) => ({
   nickname: user.NICKNAME || user.nickname,
   profileImageUrl: user.PROFILE_IMAGE_URL || user.profileImageUrl || null,
   eventOptIn: (user.EVENT_OPT_IN_YN || user.eventOptIn) === 'Y',
-  googleLinked: (user.GOOGLE_LINKED_YN || user.googleLinked) === 'Y'
+  googleLinked: (user.GOOGLE_LINKED_YN || user.googleLinked) === 'Y',
+  blocked: (user.BLOCKED_YN || user.blocked || 'N') === 'Y'
 });
 
 router.post('/register', async (req, res) => {
@@ -133,10 +134,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
     }
 
+    // 차단 여부 확인 (차단된 사용자도 로그인은 가능하지만, blocked 플래그를 반환)
+    const isBlocked = (user.BLOCKED_YN || 'N') === 'Y';
+
     return res.status(200).json({
       success: true,
       message: '로그인에 성공했습니다.',
-      data: formatUserResponse(user)
+      data: formatUserResponse(user),
+      blocked: isBlocked
     });
   } catch (error) {
     console.error('로그인 오류:', error);
@@ -165,10 +170,12 @@ router.post('/google', async (req, res) => {
           [eventFlag, user.USER_ID]
         );
 
+        const isBlocked = (user.BLOCKED_YN || 'N') === 'Y';
         return res.status(200).json({
           success: true,
           message: '구글 계정으로 로그인 되었습니다.',
-          data: formatUserResponse({ ...user, EVENT_OPT_IN_YN: eventFlag })
+          data: formatUserResponse({ ...user, EVENT_OPT_IN_YN: eventFlag }),
+          blocked: isBlocked
         });
       }
 
@@ -181,6 +188,7 @@ router.post('/google', async (req, res) => {
           [googleId, eventFlag, user.USER_ID]
         );
 
+        const isBlocked = (user.BLOCKED_YN || 'N') === 'Y';
         return res.status(200).json({
           success: true,
           message: '구글 계정 연동이 완료되었습니다.',
@@ -189,8 +197,10 @@ router.post('/google', async (req, res) => {
             email: user.EMAIL,
             nickname: user.NICKNAME,
             eventOptIn: eventFlag === 'Y',
-            googleLinked: true
-          }
+            googleLinked: true,
+            blocked: isBlocked
+          },
+          blocked: isBlocked
         });
       }
 

@@ -1450,6 +1450,12 @@ async function submitComment() {
     return;
   }
   
+  // 차단된 사용자 확인
+  if (currentUser.blocked === true) {
+    alert('차단된 사용자는 댓글을 작성할 수 없습니다.');
+    return;
+  }
+  
   try {
     const response = await fetch('/api/comments', {
       method: 'POST',
@@ -1820,9 +1826,15 @@ document.addEventListener('DOMContentLoaded', async function() {
   const isLoggedIn = checkLoginStatus();
   
   if (isLoggedIn && currentUser) {
-    // 로그인한 사용자: 댓글 작성 폼 표시
-    document.getElementById('commentForm').style.display = 'block';
-    document.getElementById('commentLoginNotice').style.display = 'none';
+    // 차단된 사용자는 댓글 작성 폼 숨기기
+    if (currentUser.blocked === true) {
+      document.getElementById('commentForm').style.display = 'none';
+      document.getElementById('commentLoginNotice').style.display = 'none';
+    } else {
+      // 로그인한 사용자: 댓글 작성 폼 표시
+      document.getElementById('commentForm').style.display = 'block';
+      document.getElementById('commentLoginNotice').style.display = 'none';
+    }
   } else {
     // 비로그인 사용자: 로그인 안내 표시
     document.getElementById('commentForm').style.display = 'none';

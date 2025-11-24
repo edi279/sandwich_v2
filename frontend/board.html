@@ -470,8 +470,15 @@ function applyMyInfoVisibility(refs) {
 function applyWriteButtonVisibility() {
   const writeBtn = document.getElementById('writeBtn');
   if (!writeBtn) return;
-  const isLoggedIn = !!getStoredUser();
-  writeBtn.style.display = isLoggedIn ? 'flex' : 'none';
+  const user = getStoredUser();
+  const isLoggedIn = !!user;
+  
+  // 로그인했지만 차단된 사용자는 글쓰기 버튼 숨기기
+  if (isLoggedIn && user.blocked === true) {
+    writeBtn.style.display = 'none';
+  } else {
+    writeBtn.style.display = isLoggedIn ? 'flex' : 'none';
+  }
 }
 
 const BOARD_MENU_ID_MAP = { recipe: '1', tip: '2' };
