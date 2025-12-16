@@ -1,5 +1,52 @@
 /* 공통 컴포넌트 스타일 - 버튼, 카드, 폼, 모달 등 */
 
+/* ===== 공통 Navbar 스타일 (post-editor, terms 등) ===== */
+.navbar-simple {
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+}
+
+.navbar-simple .navbar-container {
+  min-height: 56px;
+}
+
+.navbar-simple .navbar-brand {
+  color: var(--text-dark) !important;
+}
+
+.navbar-simple #backButton {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--text-dark) !important;
+  transition: color 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+  z-index: 1000 !important;
+  height: 100%;
+  padding: 0.5rem;
+  position: relative !important;
+}
+
+.navbar-simple #backButton:hover {
+  color: var(--primary-pink) !important;
+  transform: translateX(-2px);
+}
+
+.navbar-simple #backButton svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* Navbar 로고 */
+.navbar-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
 /* ===== 버튼 ===== */
 
 /* Primary 버튼 */

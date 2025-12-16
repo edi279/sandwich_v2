@@ -8,17 +8,253 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <link rel="stylesheet" href="/assets/css/variables.css">
 <link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
 <link rel="stylesheet" href="/assets/css/pages.css">
 <style>
-main { padding-top: 2rem; padding-bottom: 4rem; }
 .tag-input { border-radius: 0.375rem; }
 .tag-badge { margin: 0.25rem; cursor: pointer; }
+/* navbar 관련 스타일은 components.css의 .navbar-simple에서 통합 관리 */
+
+/* 발행 버튼 스타일 (분홍색 계열) */
+#publishBtn,
+#publishFromModalBtn {
+  background-color: var(--primary-pink) !important;
+  border-color: var(--primary-pink) !important;
+  color: white !important;
+}
+#publishBtn:hover,
+#publishFromModalBtn:hover {
+  background-color: var(--primary-pink-hover) !important;
+  border-color: var(--primary-pink-hover) !important;
+}
+#publishBtn:focus,
+#publishFromModalBtn:focus {
+  background-color: var(--primary-pink-hover) !important;
+  border-color: var(--primary-pink-hover) !important;
+  box-shadow: 0 0 0 0.25rem rgba(255, 107, 157, 0.25) !important;
+}
+
+/* 제목 입력 필드 폰트 크기 조정 */
+#postTitle {
+  font-size: 1rem; /* 원하는 크기로 변경 (예: 1rem, 0.95rem 등) */
+}
+
+/* 태그 입력 필드 폰트 크기 조정 */
+.tag-input {
+  font-size: 0.9rem; /* 원하는 크기로 변경 (예: 0.9rem, 0.85rem 등) */
+}
+
+/* form-label 폰트 크기 조정 */
+.form-label {
+  font-size: 0.9rem; /* 원하는 크기로 변경 (예: 0.95rem, 0.9rem, 0.85rem 등) */
+}
+
+/* navbar-brand 색상은 components.css의 .navbar-simple에서 통합 관리 */
+
+/* Tiptap 에디터 스타일 */
+.ProseMirror {
+  outline: none;
+  min-height: 400px;
+  padding: 1rem;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+.ProseMirror h1 { font-size: 32px; font-weight: 600; line-height: 1.2; margin: 0.65em 0 0.4em 0; }
+.ProseMirror h2 { font-size: 24px; font-weight: 600; line-height: 1.2; margin: 0.6em 0 0.4em 0; }
+.ProseMirror h3 { font-size: 18px; font-weight: 600; line-height: 1.2; margin: 0.55em 0 0.4em 0; }
+.ProseMirror p { font-size: 14px; margin: 0.35em 0; }
+.ProseMirror img { max-width: 100%; height: auto; margin: 1em 0; border-radius: 0.375rem; cursor: pointer; }
+.ProseMirror img.resizing { cursor: nwse-resize; }
+.ProseMirror iframe { max-width: 100%; margin: 1em 0; border-radius: 0.375rem; }
+
+/* 이미지 리사이즈 컨트롤 - 오버레이 방식 */
+.ProseMirror img.image-selected {
+  outline: 3px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+#image-resize-overlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+}
+
+#image-resize-overlay.active {
+  display: block;
+}
+
+#image-resize-overlay .resize-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: #0d6efd;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s;
+}
+
+#image-resize-overlay .resize-handle:hover {
+  background-color: #0b5ed7;
+  transform: scale(1.3);
+}
+
+#image-resize-overlay .resize-handle.top-left { top: -7px; left: -7px; cursor: nwse-resize; }
+#image-resize-overlay .resize-handle.top-right { top: -7px; right: -7px; cursor: nesw-resize; }
+#image-resize-overlay .resize-handle.bottom-left { bottom: -7px; left: -7px; cursor: nesw-resize; }
+#image-resize-overlay .resize-handle.bottom-right { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+#image-resize-overlay .resize-info {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 이미지 리사이즈 툴바 */
+#image-resize-toolbar {
+  position: fixed;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  display: none;
+  gap: 10px;
+  align-items: center;
+}
+
+#image-resize-toolbar.active {
+  display: flex;
+}
+
+#image-resize-toolbar .size-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#image-resize-toolbar .size-input-group label {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+  min-width: 24px;
+}
+
+#image-resize-toolbar .size-input {
+  width: 65px;
+  padding: 4px 6px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#image-resize-toolbar .size-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+}
+
+#image-resize-toolbar .link-icon {
+  color: #0d6efd;
+  font-size: 14px;
+  margin: 0 2px;
+}
+
+#image-resize-toolbar .separator {
+  width: 1px;
+  height: 24px;
+  background-color: #dee2e6;
+  margin: 0 4px;
+}
+
+#image-resize-toolbar button {
+  padding: 5px 10px;
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+#image-resize-toolbar button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+#image-resize-toolbar button.reset-btn {
+  background: #fff3cd;
+  border-color: #ffc107;
+  color: #856404;
+}
+
+#image-resize-toolbar button.reset-btn:hover {
+  background: #ffe69c;
+}
 </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="#">샌냠</a>
+
+<!-- 이미지 리사이즈 오버레이 -->
+<div id="image-resize-overlay">
+  <div class="resize-handle top-left" data-direction="nw"></div>
+  <div class="resize-handle top-right" data-direction="ne"></div>
+  <div class="resize-handle bottom-left" data-direction="sw"></div>
+  <div class="resize-handle bottom-right" data-direction="se"></div>
+  <div class="resize-info"></div>
+</div>
+
+<!-- 이미지 리사이즈 툴바 -->
+<div id="image-resize-toolbar">
+  <div class="size-input-group">
+    <label for="resize-width">가로</label>
+    <input type="number" id="resize-width" class="size-input" min="10" max="5000" placeholder="가로">
+    <span style="font-size: 11px; color: #6c757d;">px</span>
+  </div>
+  <span class="link-icon" title="비율 고정">🔗</span>
+  <div class="size-input-group">
+    <label for="resize-height">세로</label>
+    <input type="number" id="resize-height" class="size-input" min="10" max="5000" placeholder="세로">
+    <span style="font-size: 11px; color: #6c757d;">px</span>
+  </div>
+  <div class="separator"></div>
+  <button type="button" class="reset-btn" id="reset-size-btn">초기화</button>
+</div>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top navbar-simple">
+  <div class="container-fluid px-3 position-relative d-flex align-items-center navbar-container">
+    <button type="button" class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center" id="backButton">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+      </svg>
+    </button>
+    <a class="navbar-brand fw-bold position-absolute start-50 translate-middle-x d-flex align-items-center" href="/home.html" style="z-index: 1; height: 100%; padding-top: 5px; padding-bottom: 5px;">
+      <img src="/uploads/icon_logo/logo_veg.svg" class="navbar-logo" alt="샌냠 로고" title="샌냠 sannyam">
+    </a>
+    <div style="width: 40px; visibility: hidden;"></div> <!-- 오른쪽 균형을 위한 공간 -->
   </div>
 </nav>
 
@@ -97,26 +333,23 @@ main { padding-top: 2rem; padding-bottom: 4rem; }
               <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
               <div style="flex-grow: 1;"></div>
             </div>
-            <div class="editor-content" id="editorContent" contenteditable="true" 
-                 placeholder="내용을 입력하세요..." 
-                 data-placeholder="내용을 입력하세요..."></div>
+            <div class="editor-content" id="editorContent"></div>
             <input type="hidden" id="postContent" name="content" required>
           </div>
 
           <!-- 대표 이미지 설정 (레시피 게시판 전용) -->
           <div class="thumbnail-section" id="thumbnailSection">
-            <div class="mb-2 d-flex justify-content-between align-items-center">
+            <div class="mb-2">
               <label class="form-label mb-0 fw-semibold">대표 이미지</label>
-              <small class="text-muted">썸네일로 사용할 이미지를 선택해주세요.</small>
             </div>
             <div class="thumbnail-card" id="thumbnailCard">
               <img src="" alt="대표 이미지" id="thumbnailImage" style="display:none;">
               <div class="thumbnail-placeholder" id="thumbnailPlaceholder">
-                아직 대표 이미지가 설정되지 않았습니다.
+                이미지를 선택해주세요.
               </div>
               <div class="thumbnail-actions">
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="thumbnailUploadBtn">
-                  대표 이미지 업로드
+                  업로드
                 </button>
                 <button type="button" class="btn btn-outline-danger btn-sm" id="thumbnailRemoveBtn" style="display:none;">
                   제거
@@ -129,14 +362,15 @@ main { padding-top: 2rem; padding-bottom: 4rem; }
 
           <!-- 태그 입력 -->
           <div class="tag-section">
-            <div id="tagList" class="mt-2"></div>
+            <label class="form-label mb-0 fw-semibold">태그</label>
             <input type="hidden" id="postTags" name="tags">
             <input type="text" class="form-control tag-input mt-2" id="tagInput" 
-                   placeholder="태그를 입력하고 Enter 키를 누르세요. 태그는 최대 10개까지 추가할 수 있습니다." 
+                   placeholder="입력 후 Enter 키를 누르세요. 최대 10개 추가할 수 있습니다." 
                    autocomplete="off" maxlength="50">
           </div>
         </form>
       </div>
+      <div id="site-footer"></div>
 
       <!-- 미리보기 모달 -->
       <div class="modal fade" id="previewModal" tabindex="-1">
@@ -167,8 +401,14 @@ main { padding-top: 2rem; padding-bottom: 4rem; }
   </div>
 </main>
 
-<div id="site-footer"></div>
-
+<script>
+// Tiptap 번들 로드 확인을 위한 전역 변수
+window.TiptapEditorLoaded = false;
+window.TiptapEditorError = null;
+</script>
+<script src="/js/tiptap-editor.bundle.js" 
+        onload="window.TiptapEditorLoaded = true; console.log('✅ Tiptap 번들 로드 완료'); console.log('TiptapEditor 타입:', typeof TiptapEditor); console.log('TiptapEditor 객체:', TiptapEditor); console.log('initTiptapEditor 함수:', typeof TiptapEditor?.initTiptapEditor);" 
+        onerror="window.TiptapEditorError = '번들 파일 로드 실패'; console.error('❌ Tiptap 번들 로드 실패'); console.error('에러 상세:', event);"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 <script>
@@ -256,7 +496,7 @@ const SecurityUtils = {
 async function uploadImageFile(file) {
   const formData = new FormData();
   formData.append('image', file);
-
+  
   const response = await fetch('/api/upload/image', {
     method: 'POST',
     body: formData
@@ -271,47 +511,170 @@ async function uploadImageFile(file) {
   return result;
 }
 
+// Tiptap 에디터 인스턴스
+let editor = null;
+
 // 에디터 관리
 const EditorManager = {
   contentElement: document.getElementById('editorContent'),
   titleElement: document.getElementById('postTitle'),
   contentInput: document.getElementById('postContent'),
   
-  init() {
+  async init() {
+    await this.initTiptapEditor();
     this.setupToolbar();
-    this.setupPlaceholder();
     this.setupWordCount();
     this.setupTagInput();
     this.setupFormSubmit();
-    this.setupPasteHandler();
-    this.setupEnterKeyHandler();
     this.setupImageUpload();
+    this.setupImageResizeControls();
+    this.setupImageWrapperObserver();
+  },
+  
+  async initTiptapEditor() {
+    // TiptapEditor가 로드될 때까지 대기
+    let retries = 0;
+    const maxRetries = 50; // 5초 대기
+    
+    while (typeof TiptapEditor === 'undefined' && retries < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      retries++;
+    }
+    
+  if (typeof TiptapEditor === 'undefined') {
+    console.error('❌ Tiptap 에디터 번들이 로드되지 않았습니다.');
+    console.error('번들 파일 경로: /js/tiptap-editor.bundle.js');
+    console.error('TiptapEditorLoaded:', window.TiptapEditorLoaded);
+    console.error('TiptapEditorError:', window.TiptapEditorError);
+    console.error('스크립트 태그:', document.querySelector('script[src="/js/tiptap-editor.bundle.js"]'));
+    console.error('window 객체에 TiptapEditor가 있는지:', 'TiptapEditor' in window);
+    
+    // 번들 파일 직접 테스트
+    fetch('/js/tiptap-editor.bundle.js')
+      .then(res => {
+        console.log('번들 파일 HTTP 상태:', res.status, res.statusText);
+        if (res.ok) {
+          return res.text();
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      })
+      .then(text => {
+        console.log('번들 파일 크기:', text.length, 'bytes');
+        console.log('번들 파일 첫 200자:', text.substring(0, 200));
+      })
+      .catch(err => {
+        console.error('번들 파일 가져오기 실패:', err);
+      });
+    
+    alert('에디터를 초기화하는 중 오류가 발생했습니다. 브라우저 콘솔을 확인해주세요.');
+    return;
+  }
+    
+    console.log('TiptapEditor 확인:', typeof TiptapEditor, TiptapEditor);
+    console.log('TiptapEditor.initTiptapEditor:', typeof TiptapEditor?.initTiptapEditor);
+    
+    try {
+      // Tiptap 에디터 초기화
+      if (!TiptapEditor || !TiptapEditor.initTiptapEditor) {
+        console.error('TiptapEditor 객체:', TiptapEditor);
+        console.error('TiptapEditor의 키들:', TiptapEditor ? Object.keys(TiptapEditor) : 'undefined');
+        throw new Error('TiptapEditor.initTiptapEditor 함수를 찾을 수 없습니다.');
+      }
+      
+      if (!this.contentElement) {
+        throw new Error('에디터 컨테이너 요소를 찾을 수 없습니다.');
+      }
+      
+      editor = TiptapEditor.initTiptapEditor(this.contentElement, {
+        content: '',
+        placeholder: '내용을 입력하세요...',
+        onUpdate: ({ editor }) => {
+          // 에디터 내용이 업데이트될 때마다 호출
+          const html = editor.getHTML();
+          // XSS 보안 처리
+          const sanitized = SecurityUtils.sanitizeHtml(html);
+          this.contentInput.value = sanitized;
+        },
+      });
+      
+      if (!editor) {
+        throw new Error('에디터 인스턴스가 생성되지 않았습니다.');
+      }
+      
+      console.log('Tiptap 에디터 초기화 완료', editor);
+    } catch (error) {
+      console.error('Tiptap 에디터 초기화 실패:', error);
+      console.error('에러 스택:', error.stack);
+      console.error('에러 상세:', {
+        message: error.message,
+        name: error.name,
+        contentElement: this.contentElement,
+        TiptapEditor: typeof TiptapEditor,
+        initTiptapEditor: typeof TiptapEditor?.initTiptapEditor
+      });
+      alert('에디터를 초기화하는 중 오류가 발생했습니다: ' + error.message);
+    }
   },
 
   setupToolbar() {
+    if (!editor) {
+      console.error('에디터가 초기화되지 않았습니다.');
+      return;
+    }
+    
     const toolbar = document.getElementById('editorToolbar');
     const fontSizeDropdown = document.getElementById('fontSizeDropdown');
     
-    // 일반 버튼 클릭 처리
-    toolbar.addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-command]');
-      if (!btn) return;
-      
-      e.preventDefault();
-      const command = btn.dataset.command;
-      const value = btn.dataset.value || null;
-      
-      this.contentElement.focus();
-      
-      if (command === 'createLink') {
+    // 볼드 버튼
+    const boldBtn = toolbar.querySelector('button[data-command="bold"]');
+    if (boldBtn) {
+      boldBtn.addEventListener('click', () => {
+        editor.chain().focus().toggleBold().run();
+      });
+    }
+    
+    // 이탤릭 버튼
+    const italicBtn = toolbar.querySelector('button[data-command="italic"]');
+    if (italicBtn) {
+      italicBtn.addEventListener('click', () => {
+        editor.chain().focus().toggleItalic().run();
+      });
+    }
+    
+    // 밑줄 버튼
+    const underlineBtn = toolbar.querySelector('button[data-command="underline"]');
+    if (underlineBtn) {
+      underlineBtn.addEventListener('click', () => {
+        editor.chain().focus().toggleUnderline().run();
+      });
+    }
+    
+    // 글머리 기호 목록
+    const bulletListBtn = toolbar.querySelector('button[data-command="insertUnorderedList"]');
+    if (bulletListBtn) {
+      bulletListBtn.addEventListener('click', () => {
+        editor.chain().focus().toggleBulletList().run();
+      });
+    }
+    
+    // 번호 매기기 목록
+    const orderedListBtn = toolbar.querySelector('button[data-command="insertOrderedList"]');
+    if (orderedListBtn) {
+      orderedListBtn.addEventListener('click', () => {
+        editor.chain().focus().toggleOrderedList().run();
+      });
+    }
+    
+    // 링크 버튼
+    const linkBtn = toolbar.querySelector('button[data-command="createLink"]');
+    if (linkBtn) {
+      linkBtn.addEventListener('click', () => {
         const url = prompt('링크 URL을 입력하세요:');
         if (url && this.isValidUrl(url)) {
-          document.execCommand(command, false, url);
+          editor.chain().focus().setLink({ href: url }).run();
         }
-      } else {
-        document.execCommand(command, false, value);
-      }
-    });
+      });
+    }
     
     // 폰트 크기 드롭다운 처리
     const dropdownMenu = toolbar.querySelector('.dropdown-menu');
@@ -323,8 +686,15 @@ const EditorManager = {
           const format = item.dataset.format;
           const label = item.textContent.trim();
           
-          this.contentElement.focus();
-          document.execCommand('formatBlock', false, format);
+          if (format === 'h1') {
+            editor.chain().focus().toggleHeading({ level: 1 }).run();
+          } else if (format === 'h2') {
+            editor.chain().focus().toggleHeading({ level: 2 }).run();
+          } else if (format === 'h3') {
+            editor.chain().focus().toggleHeading({ level: 3 }).run();
+          } else if (format === 'p') {
+            editor.chain().focus().setParagraph().run();
+          }
           
           // 드롭다운 버튼 텍스트 업데이트
           fontSizeDropdown.textContent = label;
@@ -339,28 +709,25 @@ const EditorManager = {
     }
     
     // 현재 선택된 블록의 스타일에 따라 드롭다운 텍스트 업데이트
-    this.contentElement.addEventListener('keyup', () => this.updateFontSizeDropdown());
-    this.contentElement.addEventListener('mouseup', () => this.updateFontSizeDropdown());
+    editor.on('selectionUpdate', () => {
+      this.updateFontSizeDropdown();
+    });
   },
   
   updateFontSizeDropdown() {
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
+    if (!editor) return;
     
-    const range = selection.getRangeAt(0);
-    const container = range.commonAncestorContainer;
-    let element = container.nodeType === Node.TEXT_NODE ? container.parentElement : container;
+    const fontSizeDropdown = document.getElementById('fontSizeDropdown');
+    if (!fontSizeDropdown) return;
     
-    // 최상위 블록 요소 찾기
-    while (element && element !== this.contentElement) {
-      const tagName = element.tagName?.toLowerCase();
-      if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'p') {
-        const dropdown = document.getElementById('fontSizeDropdown');
-        const labels = { 'h1': 'H1', 'h2': 'H2', 'h3': 'H3', 'p': '본문' };
-        dropdown.textContent = labels[tagName] || '본문';
-        return;
-      }
-      element = element.parentElement;
+    if (editor.isActive('heading', { level: 1 })) {
+      fontSizeDropdown.textContent = 'H1';
+    } else if (editor.isActive('heading', { level: 2 })) {
+      fontSizeDropdown.textContent = 'H2';
+    } else if (editor.isActive('heading', { level: 3 })) {
+      fontSizeDropdown.textContent = 'H3';
+    } else {
+      fontSizeDropdown.textContent = '본문';
     }
   },
 
@@ -373,32 +740,6 @@ const EditorManager = {
     }
   },
 
-  setupPlaceholder() {
-    const element = this.contentElement;
-    const placeholder = element.dataset.placeholder;
-    
-    const checkPlaceholder = () => {
-      if (element.textContent.trim() === '') {
-        element.classList.add('text-muted');
-        element.textContent = placeholder;
-      }
-    };
-    
-    element.addEventListener('focus', () => {
-      if (element.textContent === placeholder) {
-        element.textContent = '';
-        element.classList.remove('text-muted');
-      }
-    });
-    
-    element.addEventListener('blur', () => {
-      if (element.textContent.trim() === '') {
-        checkPlaceholder();
-      }
-    });
-    
-    checkPlaceholder();
-  },
 
   setupWordCount() {
     // 제목 글자 수 업데이트
@@ -497,15 +838,15 @@ const EditorManager = {
       }
       
       // 본문 검증
-      let content = this.contentElement.innerHTML;
-      if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
-        alert('본문을 입력해주세요.');
+      if (!editor) {
+        alert('에디터가 초기화되지 않았습니다.');
         return;
       }
       
-      // 정화된 내용이 비어있는지 확인
-      const textContent = this.contentElement.textContent.trim();
-      if (!textContent || textContent === this.contentElement.dataset.placeholder) {
+      let content = editor.getHTML();
+      const textContent = editor.getText().trim();
+      
+      if (!textContent || textContent === '') {
         alert('본문을 입력해주세요.');
         return;
       }
@@ -519,7 +860,7 @@ const EditorManager = {
         return;
       }
 
-      content = SecurityUtils.convertYouTubeToIframe(content);
+      // XSS 보안 처리
       content = SecurityUtils.sanitizeHtml(content);
       this.contentInput.value = content;
       
@@ -536,10 +877,13 @@ const EditorManager = {
     document.getElementById('saveBtn').addEventListener('click', () => {
       // 임시 저장 로직
       const title = this.titleElement.value.trim();
-      let content = this.contentElement.innerHTML;
+      let content = '';
       
-      // 유튜브 링크를 iframe으로 변환
-      content = SecurityUtils.convertYouTubeToIframe(content);
+      if (editor) {
+        content = editor.getHTML();
+      }
+      
+      // XSS 보안 처리
       content = SecurityUtils.sanitizeHtml(content);
       
       const draftData = {
@@ -558,62 +902,10 @@ const EditorManager = {
 
   },
 
-  setupPasteHandler() {
-    this.contentElement.addEventListener('paste', (e) => {
-      e.preventDefault();
-      
-      const clipboardData = e.clipboardData || window.clipboardData;
-      const pastedText = clipboardData.getData('text/plain') || '';
-      
-      // 유튜브 링크인지 확인
-      const videoId = SecurityUtils.extractYouTubeVideoId(pastedText);
-      
-      if (videoId) {
-        // 유튜브 링크를 iframe으로 변환하여 삽입
-        const iframeHtml = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe>`;
-        document.execCommand('insertHTML', false, iframeHtml);
-      } else {
-        // 일반 텍스트 또는 HTML 붙여넣기
-        const html = clipboardData.getData('text/html');
-        if (html && html.trim()) {
-          // HTML 내에 유튜브 링크가 있는지 확인
-          const processedHtml = SecurityUtils.convertYouTubeToIframe(html);
-          document.execCommand('insertHTML', false, processedHtml);
-        } else if (pastedText) {
-          // 일반 텍스트는 그대로 붙여넣기
-          document.execCommand('insertText', false, pastedText);
-        }
-      }
-    });
-  },
-
-  setupEnterKeyHandler() {
-    this.contentElement.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        
-        // 현재 선택 영역
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        
-        // br 태그 2개 삽입 (줄바꿈 효과)
-        const br1 = document.createElement('br');
-        const br2 = document.createElement('br');
-        
-        range.deleteContents();
-        range.insertNode(br2);
-        range.insertNode(br1);
-        
-        // 커서를 br 다음으로 이동
-        range.setStartAfter(br2);
-        range.setEndAfter(br2);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    });
-  },
 
   setupImageUpload() {
+    if (!editor) return;
+    
     const imageUploadBtn = document.getElementById('imageUploadBtn');
     const imageUploadInput = document.getElementById('imageUploadInput');
     
@@ -646,8 +938,7 @@ const EditorManager = {
         const result = await uploadImageFile(file);
         
         // 이미지를 에디터에 삽입
-        const imgHtml = `<img src="${result.url}" alt="${file.name}" style="max-width: 100%; height: auto; margin: 1em 0;">`;
-        document.execCommand('insertHTML', false, imgHtml);
+        editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
         alert(error.message || '이미지 업로드 중 오류가 발생했습니다.');
@@ -658,16 +949,449 @@ const EditorManager = {
     });
   },
 
+  // 이미지 리사이즈 컨트롤 설정 (오버레이 방식)
+  setupImageResizeControls() {
+    if (!editor || !this.contentElement) return;
+
+    const overlay = document.getElementById('image-resize-overlay');
+    const toolbar = document.getElementById('image-resize-toolbar');
+    const resizeInfo = overlay?.querySelector('.resize-info');
+    const widthInput = document.getElementById('resize-width');
+    const heightInput = document.getElementById('resize-height');
+    const resetBtn = document.getElementById('reset-size-btn');
+    
+    if (!overlay || !toolbar || !widthInput || !heightInput) {
+      console.error('이미지 리사이즈 컴포넌트를 찾을 수 없습니다.');
+      return;
+    }
+
+    let selectedImage = null;
+    let originalWidth = 0;  // 원본 가로 크기
+    let originalHeight = 0; // 원본 세로 크기
+    let aspectRatio = 1;    // 가로세로 비율
+    let isResizing = false;
+    let startX = 0;
+    let startY = 0;
+    let startWidth = 0;
+    let startHeight = 0;
+    let resizeDirection = '';
+    let isUpdatingInputs = false; // 입력 필드 업데이트 중 플래그
+
+    // 오버레이 위치 업데이트
+    const updateOverlayPosition = () => {
+      if (!selectedImage) return;
+      
+      const rect = selectedImage.getBoundingClientRect();
+      
+      // 이미지 크기가 0이면 업데이트하지 않음 (입력 중일 때 발생할 수 있음)
+      if (rect.width <= 0 || rect.height <= 0) {
+        return;
+      }
+      
+      overlay.style.left = rect.left + 'px';
+      overlay.style.top = rect.top + 'px';
+      overlay.style.width = rect.width + 'px';
+      overlay.style.height = rect.height + 'px';
+      
+      // 툴바 위치 (이미지 아래)
+      toolbar.style.left = rect.left + 'px';
+      toolbar.style.top = (rect.bottom + 8) + 'px';
+      
+      // 현재 크기 표시
+      const currentWidth = Math.round(selectedImage.clientWidth);
+      const currentHeight = Math.round(selectedImage.clientHeight);
+      
+      // 크기가 유효할 때만 표시
+      if (currentWidth > 0 && currentHeight > 0) {
+        if (resizeInfo) resizeInfo.textContent = `${currentWidth} × ${currentHeight}`;
+        
+        // 입력 필드 업데이트 (다른 입력에 의한 업데이트가 아닐 때만)
+        if (!isUpdatingInputs) {
+          widthInput.value = currentWidth;
+          heightInput.value = currentHeight;
+        }
+      }
+    };
+
+    // 이미지 선택
+    const selectImage = (imgEl) => {
+      // 기존 선택 해제
+      deselectImage();
+      
+      selectedImage = imgEl;
+      
+      // 원본 크기 저장 (naturalWidth/Height 사용, 없으면 clientWidth/Height 사용)
+      if (imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+        originalWidth = imgEl.naturalWidth;
+        originalHeight = imgEl.naturalHeight;
+      } else {
+        // 이미지가 아직 로드되지 않았거나 naturalWidth가 0이면 clientWidth 사용
+        originalWidth = imgEl.clientWidth || 100;
+        originalHeight = imgEl.clientHeight || 100;
+        
+        // 이미지 로드 완료 시 원본 크기 업데이트
+        if (imgEl.complete) {
+          // 이미 로드된 경우 다시 시도
+          if (imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+            originalWidth = imgEl.naturalWidth;
+            originalHeight = imgEl.naturalHeight;
+          }
+        } else {
+          // 아직 로드 중이면 로드 완료 시 업데이트
+          imgEl.addEventListener('load', function onImageLoad() {
+            if (imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+              originalWidth = imgEl.naturalWidth;
+              originalHeight = imgEl.naturalHeight;
+              aspectRatio = originalWidth / originalHeight;
+            }
+            imgEl.removeEventListener('load', onImageLoad);
+          }, { once: true });
+        }
+      }
+      
+      aspectRatio = originalWidth / originalHeight;
+      
+      imgEl.classList.add('image-selected');
+      overlay.classList.add('active');
+      toolbar.classList.add('active');
+      
+      // 약간의 지연을 두고 위치 업데이트 (이미지 크기가 안정화될 때까지)
+      setTimeout(() => {
+        updateOverlayPosition();
+      }, 50);
+      
+      // 스크롤/리사이즈 시 위치 업데이트
+      window.addEventListener('scroll', updateOverlayPosition, true);
+      window.addEventListener('resize', updateOverlayPosition);
+    };
+
+    // 이미지 선택 해제
+    const deselectImage = () => {
+      if (selectedImage) {
+        selectedImage.classList.remove('image-selected');
+      }
+      selectedImage = null;
+      originalWidth = 0;
+      originalHeight = 0;
+      overlay.classList.remove('active');
+      toolbar.classList.remove('active');
+      
+      window.removeEventListener('scroll', updateOverlayPosition, true);
+      window.removeEventListener('resize', updateOverlayPosition);
+    };
+
+    // 픽셀 크기 적용 (비율 유지)
+    const applyPixelSize = (newWidth, newHeight) => {
+      if (!selectedImage) return;
+
+      // 유효성 검사
+      if (!Number.isFinite(newWidth) || !Number.isFinite(newHeight)) {
+        console.warn('유효하지 않은 크기 값:', newWidth, newHeight);
+        return;
+      }
+
+      // 최소 크기 제한
+      const clampedWidth = Math.max(10, Math.round(newWidth));
+      const clampedHeight = Math.max(10, Math.round(newHeight));
+      
+      // DOM에 직접 적용 (픽셀 단위)
+      selectedImage.style.width = clampedWidth + 'px';
+      selectedImage.style.height = clampedHeight + 'px';
+      selectedImage.setAttribute('width', clampedWidth + 'px');
+      selectedImage.setAttribute('height', clampedHeight + 'px');
+      
+      // 에디터에도 적용
+      const selectedSrc = selectedImage.getAttribute('src') || selectedImage.src;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'image') {
+          const imgSrc = node.attrs.src;
+          if (imgSrc === selectedSrc) {
+            editor.chain()
+              .setNodeSelection(pos)
+              .updateAttributes('image', { 
+                width: clampedWidth + 'px',
+                height: clampedHeight + 'px'
+              })
+        .run();
+            return false;
+          }
+        }
+      });
+      
+      // 오버레이 위치 업데이트 (약간의 지연을 두어 DOM 업데이트 완료 대기)
+      requestAnimationFrame(() => {
+        setTimeout(updateOverlayPosition, 10);
+      });
+    };
+
+    // 가로 입력 시 세로 자동 계산
+    widthInput.addEventListener('input', (e) => {
+      if (!selectedImage) return;
+      
+      const inputValue = e.target.value.trim();
+      
+      // 값이 비어있으면 아무것도 하지 않음 (사용자가 입력 중일 수 있음)
+      if (inputValue === '' || inputValue === '-') {
+        return;
+      }
+
+      const newWidth = parseInt(inputValue, 10);
+      
+      // 유효한 숫자가 아니거나 최소값 미만이면 무시
+      if (!Number.isFinite(newWidth) || newWidth < 10) {
+        return;
+      }
+      
+      isUpdatingInputs = true;
+      const newHeight = Math.round(newWidth / aspectRatio);
+      heightInput.value = newHeight;
+      
+      applyPixelSize(newWidth, newHeight);
+      
+      // 약간의 지연 후 플래그 해제 (DOM 업데이트 완료 대기)
+      setTimeout(() => {
+        isUpdatingInputs = false;
+      }, 0);
+    });
+
+    // 세로 입력 시 가로 자동 계산
+    heightInput.addEventListener('input', (e) => {
+      if (!selectedImage) return;
+      
+      const inputValue = e.target.value.trim();
+      
+      // 값이 비어있으면 아무것도 하지 않음 (사용자가 입력 중일 수 있음)
+      if (inputValue === '' || inputValue === '-') {
+        return;
+      }
+      
+      const newHeight = parseInt(inputValue, 10);
+      
+      // 유효한 숫자가 아니거나 최소값 미만이면 무시
+      if (!Number.isFinite(newHeight) || newHeight < 10) {
+        return;
+      }
+      
+      isUpdatingInputs = true;
+      const newWidth = Math.round(newHeight * aspectRatio);
+      widthInput.value = newWidth;
+      
+      applyPixelSize(newWidth, newHeight);
+      
+      // 약간의 지연 후 플래그 해제 (DOM 업데이트 완료 대기)
+      setTimeout(() => {
+        isUpdatingInputs = false;
+      }, 0);
+    });
+    
+    // 입력 필드 포커스 시 이전 값 저장 (포커스 잃을 때 복원용)
+    let previousWidthValue = '';
+    let previousHeightValue = '';
+    
+    widthInput.addEventListener('focus', (e) => {
+      previousWidthValue = e.target.value;
+    });
+    
+    heightInput.addEventListener('focus', (e) => {
+      previousHeightValue = e.target.value;
+    });
+    
+    // 입력 필드 포커스 잃을 때 유효하지 않은 값이면 이전 값으로 복원
+    widthInput.addEventListener('blur', (e) => {
+      const inputValue = e.target.value.trim();
+      const numValue = parseInt(inputValue, 10);
+      
+      if (!inputValue || !Number.isFinite(numValue) || numValue < 10) {
+        // 유효하지 않은 값이면 이전 값으로 복원
+        if (previousWidthValue && selectedImage) {
+          e.target.value = previousWidthValue;
+        } else if (selectedImage) {
+          // 이전 값도 없으면 현재 이미지 크기로 복원
+          e.target.value = Math.round(selectedImage.clientWidth);
+        }
+      }
+      isUpdatingInputs = false;
+    });
+    
+    heightInput.addEventListener('blur', (e) => {
+      const inputValue = e.target.value.trim();
+      const numValue = parseInt(inputValue, 10);
+      
+      if (!inputValue || !Number.isFinite(numValue) || numValue < 10) {
+        // 유효하지 않은 값이면 이전 값으로 복원
+        if (previousHeightValue && selectedImage) {
+          e.target.value = previousHeightValue;
+        } else if (selectedImage) {
+          // 이전 값도 없으면 현재 이미지 크기로 복원
+          e.target.value = Math.round(selectedImage.clientHeight);
+        }
+      }
+      isUpdatingInputs = false;
+    });
+
+    // Enter 키로 적용
+    [widthInput, heightInput].forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+      });
+    });
+
+    // 초기화 버튼 클릭
+    resetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!selectedImage || !originalWidth || !originalHeight) return;
+      
+      isUpdatingInputs = true;
+      widthInput.value = originalWidth;
+      heightInput.value = originalHeight;
+      
+      applyPixelSize(originalWidth, originalHeight);
+      isUpdatingInputs = false;
+    });
+
+    // 이미지 클릭 이벤트
+    this.contentElement.addEventListener('click', (event) => {
+      const target = event.target;
+      
+      if (target.tagName === 'IMG') {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (selectedImage === target) {
+          deselectImage();
+        } else {
+          selectImage(target);
+        }
+      } else {
+        // 이미지가 아닌 에디터 내부 영역 클릭 시 선택 해제
+        // 단, 오버레이나 툴바 클릭은 제외
+        if (selectedImage && !overlay.contains(target) && !toolbar.contains(target)) {
+          deselectImage();
+        }
+        // 에디터 포커스 유지 (이미지가 아닌 영역 클릭 시)
+        if (editor && !target.closest('#image-resize-overlay') && !target.closest('#image-resize-toolbar')) {
+          editor.chain().focus().run();
+        }
+      }
+    });
+
+    // 에디터 외부 클릭 시 선택 해제
+    document.addEventListener('click', (event) => {
+      if (!selectedImage) return;
+      
+      const target = event.target;
+      
+      // 오버레이, 툴바 클릭은 무시 (에디터 내부는 위에서 처리)
+      if (overlay.contains(target) || toolbar.contains(target)) {
+        return;
+      }
+      
+      // 에디터 외부 클릭 시 선택 해제
+      if (!this.contentElement.contains(target)) {
+        deselectImage();
+      }
+    });
+
+    // 리사이즈 핸들 드래그
+    overlay.querySelectorAll('.resize-handle').forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!selectedImage) return;
+        
+        isResizing = true;
+        resizeDirection = handle.dataset.direction;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = selectedImage.clientWidth;
+        startHeight = selectedImage.clientHeight;
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      });
+    });
+
+    const handleMouseMove = (e) => {
+      if (!isResizing || !selectedImage) return;
+      
+      e.preventDefault();
+      
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      
+      let newWidth = startWidth;
+      
+      // 방향에 따른 크기 계산
+      if (resizeDirection.includes('e')) {
+        newWidth = startWidth + deltaX;
+      } else if (resizeDirection.includes('w')) {
+        newWidth = startWidth - deltaX;
+      }
+      
+      // 비율 유지하면서 높이 계산
+      const newHeight = Math.round(newWidth / aspectRatio);
+      
+      isUpdatingInputs = true;
+      applyPixelSize(newWidth, newHeight);
+      isUpdatingInputs = false;
+      
+      startX = e.clientX;
+      startWidth = selectedImage.clientWidth;
+    };
+
+    const handleMouseUp = () => {
+      isResizing = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    // 더블클릭으로 직접 크기 입력 (기존 기능 유지)
+    this.contentElement.addEventListener('dblclick', (event) => {
+      const target = event.target;
+      if (target.tagName !== 'IMG') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      
+      selectImage(target);
+      widthInput.focus();
+      widthInput.select();
+    });
+
+    // 키보드 단축키 (ESC로 선택 해제)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && selectedImage) {
+        deselectImage();
+      }
+    });
+  },
+
+  // 이미지 wrapper observer 제거 (오버레이 방식에서는 불필요)
+  setupImageWrapperObserver() {
+    // 오버레이 방식에서는 wrapper가 필요 없음
+  },
+
   showPreview(previewModal) {
     const title = this.titleElement.value.trim() || '(제목 없음)';
-    let content = this.contentElement.innerHTML;
+    let content = '';
     let sanitizedContent = '';
     
-    if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
-      sanitizedContent = '';
-    } else {
-      content = SecurityUtils.convertYouTubeToIframe(content);
-      sanitizedContent = SecurityUtils.sanitizeHtml(content);
+    if (editor) {
+      content = editor.getHTML();
+      const textContent = editor.getText().trim();
+      
+      if (textContent === '') {
+        sanitizedContent = '';
+      } else {
+        // XSS 보안 처리
+        sanitizedContent = SecurityUtils.sanitizeHtml(content);
+      }
     }
 
     // 카테고리 텍스트 가져오기 (ID가 아닌 이름)
@@ -688,18 +1412,11 @@ const EditorManager = {
       ? document.getElementById('postTags').value.split(',').map(t => SecurityUtils.escapeHtml(t)).join(', ')
       : '없음';
     
-    const thumbnailUrlInput = document.getElementById('thumbnailUrl');
-    const thumbnailUrl = thumbnailUrlInput ? thumbnailUrlInput.value.trim() : '';
+    // 썸네일 이미지는 미리보기에서 표시하지 않음 (게시판 목록에서만 사용)
     const previewThumbnailEl = document.getElementById('previewThumbnail');
-
     if (previewThumbnailEl) {
-      if (categorySelect.value === '1' && thumbnailUrl) {
-        previewThumbnailEl.src = thumbnailUrl;
-        previewThumbnailEl.style.display = 'block';
-      } else {
         previewThumbnailEl.src = '';
         previewThumbnailEl.style.display = 'none';
-      }
     }
     
     document.getElementById('previewTitle').textContent = SecurityUtils.escapeHtml(title);
@@ -719,24 +1436,21 @@ const EditorManager = {
     }
     
     // 본문 검증
-    let content = this.contentElement.innerHTML;
-    if (content.trim() === '' || content === this.contentElement.dataset.placeholder) {
-      alert('본문을 입력해주세요.');
+    if (!editor) {
+      alert('에디터가 초기화되지 않았습니다.');
       return;
     }
     
-    // 유튜브 링크를 iframe으로 변환 (아직 변환되지 않은 경우)
-    content = SecurityUtils.convertYouTubeToIframe(content);
+    let content = editor.getHTML();
+    const textContent = editor.getText().trim();
+    
+    if (!textContent || textContent === '') {
+      alert('본문을 입력해주세요.');
+      return;
+    }
     
     // HTML 정화 (XSS 방어)
     content = SecurityUtils.sanitizeHtml(content);
-    
-    // 정화된 내용이 비어있는지 확인
-    const textContent = this.contentElement.textContent.trim();
-    if (!textContent || textContent === this.contentElement.dataset.placeholder) {
-      alert('본문을 입력해주세요.');
-      return;
-    }
     
     this.contentInput.value = content;
     
@@ -887,13 +1601,47 @@ function checkLogin() {
 }
 
 // 초기화
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // 뒤로가기 버튼 이벤트
+  const backButton = document.getElementById('backButton');
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      // 이전 페이지로 이동 또는 홈으로 이동
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '/home.html';
+      }
+    });
+  }
+  
   // 로그인 체크
   if (!checkLogin()) {
     return;
   }
   
-  EditorManager.init();
+  // Tiptap 번들이 로드될 때까지 대기
+  let retries = 0;
+  const maxRetries = 100; // 10초 대기
+  
+  while ((typeof TiptapEditor === 'undefined' || !window.TiptapEditorLoaded) && retries < maxRetries) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    retries++;
+  }
+  
+  if (typeof TiptapEditor === 'undefined') {
+    console.error('Tiptap 에디터 번들이 로드되지 않았습니다.');
+    console.error('스크립트 태그 확인:', document.querySelector('script[src="/js/tiptap-editor.bundle.js"]'));
+    console.error('TiptapEditorLoaded:', window.TiptapEditorLoaded);
+    console.error('window 객체에 TiptapEditor가 있는지:', 'TiptapEditor' in window);
+    alert('에디터를 초기화하는 중 오류가 발생했습니다. 브라우저 콘솔을 확인해주세요.');
+    return;
+  }
+  
+  console.log('TiptapEditor 확인:', typeof TiptapEditor, TiptapEditor);
+  console.log('TiptapEditor.initTiptapEditor:', typeof TiptapEditor?.initTiptapEditor);
+  
+  await EditorManager.init();
   
   // Footer 로드
   fetch('/footer.html')
@@ -1152,7 +1900,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // 본문 설정
-      EditorManager.contentElement.innerHTML = data.CONTENT || '';
+      if (editor && data.CONTENT) {
+        editor.commands.setContent(data.CONTENT);
+      }
       console.log('🔍 본문 설정 완료:', data.CONTENT ? '있음' : '없음');
       
       if (postType === '1') {
@@ -1234,7 +1984,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const draft = JSON.parse(savedDraft);
       if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
         EditorManager.titleElement.value = draft.title || '';
-        EditorManager.contentElement.innerHTML = draft.content || '';
+        if (editor && draft.content) {
+          editor.commands.setContent(draft.content);
+        }
         if (draft.category) {
               // 메뉴 로드 완료 후 복원
               setTimeout(() => {
@@ -1284,9 +2036,9 @@ window.addEventListener('beforeunload', (e) => {
   }
   
   const title = EditorManager.titleElement.value.trim();
-  const content = EditorManager.contentElement.textContent.trim();
+  const content = editor ? editor.getText().trim() : '';
   
-  if (title || (content && content !== EditorManager.contentElement.dataset.placeholder)) {
+  if (title || content) {
     e.preventDefault();
     e.returnValue = '';
   }

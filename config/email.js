@@ -37,7 +37,7 @@ const createTransporter = () => {
 };
 
 // 비밀번호 재설정 이메일 발송
-const sendPasswordResetEmail = async (toEmail, tempPassword) => {
+const sendPasswordResetEmail = async (toEmail, resetLink) => {
   const transporter = createTransporter();
   
   if (!transporter) {
@@ -47,32 +47,34 @@ const sendPasswordResetEmail = async (toEmail, tempPassword) => {
   const mailOptions = {
     from: `"샌냠" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: toEmail,
-    subject: '[샌냠] 임시 비밀번호가 발급되었습니다',
+    subject: '[샌냠] 비밀번호 재설정 링크',
     html: `
       <div style="font-family: 'Pretendard', 'Noto Sans KR', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #ff6b9d, #ff85b8); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
           <h1 style="color: #fff; margin: 0; font-size: 24px;">샌냠</h1>
         </div>
         <div style="background: #fff; padding: 30px; border: 1px solid #ffe0e6; border-top: none; border-radius: 0 0 12px 12px;">
-          <h2 style="color: #333; margin-top: 0;">임시 비밀번호가 발급되었습니다</h2>
+          <h2 style="color: #333; margin-top: 0;">비밀번호 재설정</h2>
           <p style="color: #666; line-height: 1.6;">
             안녕하세요,<br>
-            요청하신 임시 비밀번호가 발급되었습니다. 아래 임시 비밀번호로 로그인하신 후, 반드시 비밀번호를 변경해 주세요.
+            비밀번호 재설정을 요청하셨습니다. 아래 버튼을 클릭하여 새로운 비밀번호를 설정해 주세요.
           </p>
-          <div style="background: #fff7fa; border: 2px solid #ffd6e1; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-            <p style="margin: 0; color: #666; font-size: 14px;">임시 비밀번호</p>
-            <p style="margin: 10px 0 0; color: #ff6b9d; font-size: 24px; font-weight: bold; letter-spacing: 2px; font-family: monospace;">
-              ${tempPassword}
-            </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #ff6b9d, #ff85b8); color: #fff; text-decoration: none; border-radius: 999px; font-weight: 600; font-size: 16px;">
+              비밀번호 재설정하기
+            </a>
           </div>
           <div style="background: #fff7fa; border-left: 4px solid #ff6b9d; padding: 15px; margin: 20px 0; border-radius: 4px;">
             <p style="margin: 0; color: #d6336c; font-size: 14px; font-weight: 600;">
-              ⚠️ 보안을 위해 로그인 후 즉시 비밀번호를 변경해 주세요.
+              ⚠️ 이 링크는 1시간 동안만 유효합니다.
             </p>
           </div>
-          <p style="color: #999; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f3f5;">
-            본 이메일은 비밀번호 찾기 요청에 의해 자동으로 발송된 메일입니다.<br>
-            만약 본인이 요청하지 않았다면, 이 이메일을 무시하시기 바랍니다.
+          <p style="color: #999; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f3f5;">
+            버튼이 작동하지 않는 경우, 아래 링크를 복사하여 브라우저에 붙여넣으세요:<br>
+            <span style="word-break: break-all; color: #666;">${resetLink}</span>
+          </p>
+          <p style="color: #999; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f3f5;">
+            본인이 요청하지 않았다면, 이 이메일을 무시하시기 바랍니다.
           </p>
         </div>
       </div>

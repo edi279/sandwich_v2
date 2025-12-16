@@ -12,26 +12,6 @@ const normalizeFlag = (value) => {
   return value ? 'Y' : 'N';
 };
 
-// 만 나이 계산 함수
-const calculateAge = (birthStr) => {
-  if (!/^\d{8}$/.test(birthStr)) return null;
-  
-  const year = parseInt(birthStr.substring(0, 4));
-  const month = parseInt(birthStr.substring(4, 6)) - 1; // 월은 0부터 시작
-  const day = parseInt(birthStr.substring(6, 8));
-  
-  const birthDate = new Date(year, month, day);
-  const today = new Date();
-  
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-};
 
 const formatUserResponse = (user) => ({
   userId: user.USER_ID || user.userId,
@@ -44,25 +24,10 @@ const formatUserResponse = (user) => ({
 });
 
 router.post('/register', async (req, res) => {
-  const { email, password, nickname, birth, eventOptIn } = req.body;
+  const { email, password, nickname, eventOptIn } = req.body;
 
-  if (!email || !password || !nickname || !birth) {
-    return res.status(400).json({ success: false, message: '이메일, 비밀번호, 닉네임, 생년월일은 필수 입력 항목입니다.' });
-  }
-
-  // 생년월일 형식 검증 (yyyyMMdd, 8자리 숫자)
-  if (!/^\d{8}$/.test(birth)) {
-    return res.status(400).json({ success: false, message: '생년월일은 8자리 숫자(yyyyMMdd) 형식으로 입력해 주세요.' });
-  }
-
-  // 만 14세 미만 검증
-  const age = calculateAge(birth);
-  if (age === null) {
-    return res.status(400).json({ success: false, message: '올바른 생년월일을 입력해 주세요.' });
-  }
-  
-  if (age < 14) {
-    return res.status(400).json({ success: false, message: '만 14세 미만은 가입이 불가합니다.' });
+  if (!email || !password || !nickname) {
+    return res.status(400).json({ success: false, message: '이메일, 비밀번호, 닉네임은 필수 입력 항목입니다.' });
   }
 
   try {
@@ -76,9 +41,9 @@ router.post('/register', async (req, res) => {
     const eventFlag = normalizeFlag(eventOptIn);
 
     const [result] = await pool.query(
-      `INSERT INTO USER_TB (EMAIL, PASSWORD_HASH, NICKNAME, BIRTH, EVENT_OPT_IN_YN, GOOGLE_LINKED_YN)
-       VALUES (?, ?, ?, ?, ?, 'N')`,
-      [email, hashedPassword, nickname, birth, eventFlag]
+      `INSERT INTO USER_TB (EMAIL, PASSWORD_HASH, NICKNAME, EVENT_OPT_IN_YN, GOOGLE_LINKED_YN)
+       VALUES (?, ?, ?, ?, 'N')`,
+      [email, hashedPassword, nickname, eventFlag]
     );
 
     return res.status(201).json({
@@ -240,39 +205,34 @@ router.post('/google', async (req, res) => {
   }
 });
 
-// 임시 비밀번호 생성 함수
-const generateTempPassword = () => {
+// 비밀번호 재설정 토큰 생성 함수
+const generateResetToken = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  let token = '';
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return password;
+  return token;
 };
 
 router.post('/find-password', async (req, res) => {
-  const { email, birth } = req.body;
+  const { email } = req.body;
 
-  if (!email || !birth) {
-    return res.status(400).json({ success: false, message: '이메일과 생년월일을 모두 입력해 주세요.' });
-  }
-
-  // 생년월일 형식 검증 (yyyyMMdd, 8자리 숫자)
-  if (!/^\d{8}$/.test(birth)) {
-    return res.status(400).json({ success: false, message: '생년월일은 8자리 숫자(yyyyMMdd) 형식으로 입력해 주세요.' });
+  if (!email) {
+    return res.status(400).json({ success: false, message: '이메일을 입력해 주세요.' });
   }
 
   try {
-    // 이메일과 생년월일로 사용자 확인
+    // 이메일로 사용자 확인
     const [users] = await pool.query(
-      'SELECT USER_ID, EMAIL, BIRTH, PASSWORD_HASH, GOOGLE_LINKED_YN FROM USER_TB WHERE EMAIL = ? AND BIRTH = ?',
-      [email, birth]
+      'SELECT USER_ID, EMAIL, PASSWORD_HASH, GOOGLE_LINKED_YN FROM USER_TB WHERE EMAIL = ?',
+      [email]
     );
 
     if (users.length === 0) {
       return res.status(404).json({ 
         success: false, 
-        message: '입력하신 이메일과 생년월일로 등록된 회원 정보를 찾을 수 없습니다.' 
+        message: '입력하신 이메일로 등록된 회원 정보를 찾을 수 없습니다.' 
       });
     }
 
@@ -286,37 +246,98 @@ router.post('/find-password', async (req, res) => {
       });
     }
 
-    // 임시 비밀번호 생성
-    const tempPassword = generateTempPassword();
-    const hashedTempPassword = await bcrypt.hash(tempPassword, 10);
+    // 비밀번호 재설정 토큰 생성
+    const resetToken = generateResetToken();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1시간 후 만료
 
-    // DB에 임시 비밀번호 저장
+    // DB에 토큰 저장
     await pool.query(
-      'UPDATE USER_TB SET PASSWORD_HASH = ?, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?',
-      [hashedTempPassword, user.USER_ID]
+      'UPDATE USER_TB SET PASSWORD_RESET_TOKEN = ?, PASSWORD_RESET_EXPIRES = ?, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?',
+      [resetToken, expiresAt, user.USER_ID]
     );
+
+    // 비밀번호 변경 링크 생성
+    const resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password.html?token=${resetToken}`;
 
     // 이메일 발송
     try {
-      await sendPasswordResetEmail(email, tempPassword);
+      await sendPasswordResetEmail(email, resetLink);
       console.log(`[비밀번호 찾기] 이메일 발송 성공: ${email}`);
     } catch (emailError) {
       console.error('[비밀번호 찾기] 이메일 발송 실패:', emailError);
-      // 이메일 발송 실패해도 임시 비밀번호는 발급되었으므로 성공으로 처리
-      // 단, 사용자에게는 이메일 발송 실패를 알림
-      return res.status(200).json({
-        success: true,
-        message: '임시 비밀번호가 발급되었으나 이메일 발송에 실패했습니다. 관리자에게 문의해 주세요.'
+      return res.status(500).json({
+        success: false,
+        message: '이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: '임시 비밀번호가 발급되었습니다. 이메일을 확인해 주세요.'
+      message: '비밀번호 재설정 링크가 발송되었습니다. 이메일을 확인해 주세요.'
     });
   } catch (error) {
     console.error('비밀번호 찾기 오류:', error);
     return res.status(500).json({ success: false, message: '비밀번호 찾기 처리 중 오류가 발생했습니다.' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({ success: false, message: '토큰과 비밀번호를 입력해 주세요.' });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ success: false, message: '비밀번호는 8자리 이상이어야 합니다.' });
+  }
+
+  try {
+    // 토큰으로 사용자 확인
+    const [users] = await pool.query(
+      'SELECT USER_ID, PASSWORD_RESET_TOKEN, PASSWORD_RESET_EXPIRES FROM USER_TB WHERE PASSWORD_RESET_TOKEN = ?',
+      [token]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '유효하지 않은 토큰입니다.' 
+      });
+    }
+
+    const user = users[0];
+
+    // 토큰 만료 확인
+    const now = new Date();
+    const expiresAt = new Date(user.PASSWORD_RESET_EXPIRES);
+    
+    if (now > expiresAt) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '비밀번호 재설정 링크가 만료되었습니다. 다시 요청해 주세요.' 
+      });
+    }
+
+    // 새 비밀번호 해시화
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 비밀번호 업데이트 및 토큰 제거
+    await pool.query(
+      'UPDATE USER_TB SET PASSWORD_HASH = ?, PASSWORD_RESET_TOKEN = NULL, PASSWORD_RESET_EXPIRES = NULL, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?',
+      [hashedPassword, user.USER_ID]
+    );
+
+    console.log(`[비밀번호 재설정] 성공: USER_ID=${user.USER_ID}`);
+
+    return res.status(200).json({
+      success: true,
+      message: '비밀번호가 성공적으로 변경되었습니다.'
+    });
+  } catch (error) {
+    console.error('비밀번호 재설정 오류:', error);
+    return res.status(500).json({ success: false, message: '비밀번호 재설정 처리 중 오류가 발생했습니다.' });
   }
 });
 

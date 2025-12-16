@@ -27,19 +27,11 @@
     .page-header {
       margin-bottom: 3rem;
     }
-
-    .page-title {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--primary-pink);
-      letter-spacing: 2px;
-      margin: 0 0 0.5rem 0;
-    }
-
+    
     .page-subtitle {
       color: var(--text-muted);
-      font-size: 1rem;
       margin: 0;
+      /* font-size는 layout.css에서 반응형으로 관리 */
     }
 
     .menu-tabs {
@@ -361,24 +353,16 @@
       .my-activity-main {
         padding: 2.5rem 2rem;
       }
-
-      .page-title {
-        font-size: 2.2rem;
-      }
+      /* page-title 반응형 스타일은 layout.css에서 통합 관리 */
     }
 
     @media (max-width: 768px) {
-      :root {
-        --gnb-width: 64px;
-      }
-
       .my-activity-main {
+        margin-left: 0;
         padding: 2rem 1.5rem;
+        padding-bottom: calc(2rem + 70px); /* 하단 네비게이션 바 높이만큼 추가 */
       }
-
-      .page-title {
-        font-size: 2rem;
-      }
+      /* page-title 반응형 스타일은 layout.css에서 통합 관리 */
 
       .menu-tabs {
         gap: 0.5rem;
@@ -399,11 +383,9 @@
     @media (max-width: 540px) {
       .my-activity-main {
         padding: 1.8rem 1.2rem;
+        padding-bottom: calc(1.8rem + 70px); /* 하단 네비게이션 바 높이만큼 추가 */
       }
-
-      .page-title {
-        font-size: 1.8rem;
-      }
+      /* page-title 반응형 스타일은 layout.css에서 통합 관리 */
 
       .content-section {
         padding: 1.5rem;
@@ -441,7 +423,6 @@
 
       <!-- 뱃지 현황 섹션 -->
       <section class="content-section active" id="badgeSection">
-        <h2 class="section-title">뱃지 현황</h2>
         <div class="badge-grid" id="badgeGrid">
           <!-- 뱃지 목록이 동적으로 로드됩니다 -->
         </div>
@@ -472,7 +453,6 @@
 
       <!-- 북마크 섹션 -->
       <section class="content-section" id="bookmarkSection">
-        <h2 class="section-title">북마크</h2>
         <div class="bookmark-list" id="bookmarkList">
           <!-- 북마크 목록이 동적으로 로드됩니다 -->
         </div>
@@ -484,7 +464,6 @@
 
       <!-- 내가 작성한 글 섹션 -->
       <section class="content-section" id="myPostsSection">
-        <h2 class="section-title">내가 작성한 글</h2>
         <div class="post-list" id="postList">
           <!-- 작성한 글 목록이 동적으로 로드됩니다 -->
         </div>
@@ -496,7 +475,6 @@
 
       <!-- 내가 작성한 댓글 섹션 -->
       <section class="content-section" id="myCommentsSection">
-        <h2 class="section-title">내가 작성한 댓글</h2>
         <div class="comment-list" id="commentList">
           <!-- 작성한 댓글 목록이 동적으로 로드됩니다 -->
         </div>

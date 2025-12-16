@@ -10,6 +10,20 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// 파일 필터
+const imageFileFilter = function (req, file, cb) {
+  // 이미지 파일만 허용
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+  
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('이미지 파일만 업로드할 수 있습니다.'));
+  }
+};
+
 // Multer 설정
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -29,18 +43,7 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB 제한
   },
-  fileFilter: function (req, file, cb) {
-    // 이미지 파일만 허용
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('이미지 파일만 업로드할 수 있습니다.'));
-    }
-  }
+  fileFilter: imageFileFilter
 });
 
 // 이미지 업로드 엔드포인트

@@ -1,5 +1,19 @@
 /* 페이지별 고유 스타일 */
 
+/* ===== 공통: main 요소 하단 여백 ===== */
+/* Bootstrap container를 사용하는 main 요소의 공통 패딩 */
+main.container {
+  padding-top: 1rem;
+  padding-bottom: 3rem;
+}
+
+/* main-content 클래스를 사용하는 페이지의 하단 여백 (post-detail 등) */
+/* layout.css의 .main-content padding을 오버라이드하여 하단 여백만 증가 */
+main.main-content {
+  padding-top: var(--spacing-xl);
+  padding-bottom: 3rem;
+}
+
 /* ===== Terms 페이지 ===== */
 .article h2 {
   margin-top: var(--spacing-xl);
@@ -51,6 +65,14 @@ h1.display-5 {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.editor-top-bar-left .form-select {
+  max-width: 100%;
+  flex-shrink: 1;
 }
 
 .editor-top-bar-right {
@@ -183,7 +205,7 @@ h1.display-5 {
 .thumbnail-placeholder {
   color: var(--text-secondary);
   font-size: 0.95rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .thumbnail-actions {
@@ -217,7 +239,7 @@ h1.display-5 {
 .home-header {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-lg);
   margin-bottom: var(--spacing-3xl);
   text-align: center;
   align-items: center;
@@ -228,6 +250,14 @@ h1.display-5 {
   font-weight: 700;
   color: var(--primary-pink);
   letter-spacing: 2px;
+}
+
+.service-logo {
+  /* 반응형 로고 크기: 400px 미만 57px, 1189px 이상 83px, 그 사이는 비례 조절 */
+  height: clamp(57px, 43.82px + 3.295vw, 83px);
+  width: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .search-area {
@@ -242,7 +272,7 @@ h1.display-5 {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: 0.75rem var(--spacing-md);
+  padding: 0.3rem var(--spacing-md);
   background-color: #fff;
   border-radius: 40px;
   border: 1.5px solid var(--soft-pink-border);
@@ -307,11 +337,18 @@ h1.display-5 {
 
 .recipe-slider {
   display: flex;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   scroll-behavior: smooth;
   gap: var(--spacing-lg);
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.recipe-slider::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .recipe-preview-card {
@@ -446,6 +483,13 @@ h1.display-5 {
   color: var(--text-muted);
 }
 
+/* 모바일 (GNB가 하단에 있을 때)에서만 숨기기 */
+@media (max-width: 768px) {
+  .auth-actions {
+    display: none;
+  }
+}
+
 .auth-link {
   text-decoration: none;
   color: var(--primary-pink);
@@ -462,13 +506,21 @@ h1.display-5 {
   font-size: var(--font-size-sm);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1024px) and (min-width: 700px) {
   .service-title {
     font-size: 2.2rem;
   }
 
   .recipe-preview-card {
     flex: 0 0 calc(33.333% - var(--spacing-lg) * 2 / 3);
+    min-width: calc(33.333% - var(--spacing-lg) * 2 / 3);
+  }
+}
+
+@media (max-width: 699px) {
+  .recipe-preview-card {
+    flex: 0 0 calc(50% - var(--spacing-lg) * 1 / 2);
+    min-width: calc(50% - var(--spacing-lg) * 1 / 2);
   }
 
   .recipe-slider-wrapper {
@@ -489,13 +541,31 @@ h1.display-5 {
     right: 0;
   }
 
-  .auth-actions {
-    top: 2rem;
-    right: 2rem;
-  }
+  /* auth-actions는 기본 미디어 쿼리에서 처리 */
 }
 
 @media (max-width: 768px) {
+  .editor-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-top-bar-left {
+    width: 100%;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .editor-top-bar-left .form-select {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100%;
+  }
+
+  .editor-top-bar-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
   .service-title {
     font-size: var(--font-size-2xl);
   }
@@ -504,10 +574,7 @@ h1.display-5 {
     max-width: 100%;
   }
 
-  .recipe-preview-card {
-    flex: 0 0 calc(50% - var(--spacing-lg) * 1 / 2);
-    min-width: 280px;
-  }
+  /* recipe-preview-card는 700px 미만 미디어 쿼리에서 처리 */
 
   .recipe-slider-wrapper {
     padding: 0 25px;
@@ -519,11 +586,7 @@ h1.display-5 {
     font-size: 18px;
   }
 
-  .auth-actions {
-    top: 1.5rem;
-    right: 1.5rem;
-    font-size: var(--font-size-xs);
-  }
+  /* auth-actions는 기본 미디어 쿼리에서 처리 */
 }
 
 @media (max-width: 540px) {
@@ -541,8 +604,8 @@ h1.display-5 {
   }
 
   .recipe-preview-card {
-    flex: 0 0 100%;
-    min-width: 100%;
+    flex: 0 0 calc(50% - var(--spacing-lg) * 1 / 2);
+    min-width: calc(50% - var(--spacing-lg) * 1 / 2);
   }
 
   .recipe-slider-wrapper {
@@ -554,10 +617,7 @@ h1.display-5 {
   }
 
   .auth-actions {
-    position: static;
-    justify-content: flex-end;
-    margin-bottom: var(--spacing-md);
-    font-size: var(--font-size-xs);
+    display: none !important; /* 모바일에서 로그인/회원가입 버튼 숨기기 */
   }
 }
 

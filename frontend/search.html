@@ -319,6 +319,7 @@
       }
 
       .search-main {
+        margin-left: 0;
         padding: 2rem 1.5rem;
       }
 
@@ -415,7 +416,13 @@
 
     function applyAuthState(user, gnbRefs) {
       if (gnbRefs && gnbRefs.myInfoBtn) {
-        gnbRefs.myInfoBtn.style.display = user ? 'flex' : 'none';
+        const isMobile = window.innerWidth <= 768;
+        // 모바일에서는 항상 프로필 버튼 표시, PC에서는 로그인 시에만 표시
+        if (isMobile) {
+          gnbRefs.myInfoBtn.style.setProperty('display', 'flex', 'important');
+        } else {
+          gnbRefs.myInfoBtn.style.setProperty('display', user ? 'flex' : 'none', 'important');
+        }
       }
     }
 
@@ -647,13 +654,15 @@
       await Gnb.render({
         containerId: 'gnb-root',
         activeMenu: null,
-        showMyInfo: !!currentUser,
+        showMyInfo: true,
         onReady: (refs) => {
           gnbRefs = refs;
+          applyAuthState(currentUser, gnbRefs);
+          window.addEventListener('resize', () => {
+            applyAuthState(getStoredUser(), gnbRefs);
+          });
         }
       });
-
-      applyAuthState(currentUser, gnbRefs);
 
       initSearch();
       loadSearchFromUrl();

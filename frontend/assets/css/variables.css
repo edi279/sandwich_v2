@@ -24,7 +24,7 @@
   --border-color: #f1f3f5;
   --border-gray: #e9ecef;
   --border-light: #dee2e6;
-  --text-dark: #333;
+  --text-dark: #2e2e2e;
   --text-muted: #868e96;
   --text-secondary: #6c757d;
   --text-placeholder: #adb5bd;
@@ -42,8 +42,8 @@
   /* 색상 - 기타 */
   --gold: #FFD700;
   --profile-bg: #9ab7cb;
-  --write-btn: #eabddf;
-  --write-btn-hover: #c695cc;
+  --dust-purple: #d2a3d8;
+  --pink-purple: #efcae5;
 
   /* 폰트 */
   --font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

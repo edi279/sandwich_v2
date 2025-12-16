@@ -35,6 +35,9 @@ app.use(express.static(path.join(__dirname, 'frontend'), {
   }
 }));
 
+// 정적 파일 서빙 (public 폴더) - JS, CSS 등
+app.use(express.static(path.join(__dirname, 'public')));
+
 // 업로드된 파일 서빙
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

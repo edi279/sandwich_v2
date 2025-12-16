@@ -352,8 +352,9 @@
 /* 반응형 */
 @media (max-width: 768px) {
   .main-content {
-    margin-left: 64px;
+    margin-left: 0;
     padding: 1rem;
+    padding-bottom: calc(1rem + 70px); /* 하단 네비게이션 바 높이만큼 추가 */
   }
 
   .detail-container {
@@ -763,12 +764,11 @@
             </div>
             <span class="meta-divider">|</span>
             <div class="meta-item">
-              <span class="meta-item-icon">📅</span>
               <span id="postDate"></span>
             </div>
             <span class="meta-divider">|</span>
             <div class="meta-item">
-              <span class="meta-item-icon">👁️</span>
+              <span class="meta-item-icon">👁</span>
               <span id="postViews"></span>
             </div>
           </div>
@@ -930,6 +930,19 @@ async function loadPost() {
   }
 }
 
+// 날짜 포맷: yyyy.mm.dd hh:mm
+function formatDateTime(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '-';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${y}.${m}.${day} ${hh}:${mm}`;
+}
+
 // 게시글 표시
 function displayPost(data) {
   // 게시글 정보 저장 (목록으로 이동 시 사용)
@@ -945,18 +958,8 @@ function displayPost(data) {
     categoryEl.style.display = 'none';
   }
 
-  // 이미지 (레시피만 - MENU_ID 1)
-  if (postType === '1' && data.IMAGE_URL) {
-    const imageSection = document.getElementById('postImageSection');
-    const imageEl = document.getElementById('postImage');
-    imageEl.src = data.IMAGE_URL;
-    imageEl.onerror = function() {
-      imageSection.style.display = 'none';
-    };
-    imageSection.style.display = 'block';
-  } else {
-    document.getElementById('postImageSection').style.display = 'none';
-  }
+  // 이미지 섹션 숨김 (썸네일은 게시판 목록에서만 사용, 상세보기에서는 표시하지 않음)
+  document.getElementById('postImageSection').style.display = 'none';
 
   // 제목
   document.getElementById('postTitle').textContent = data.TITLE || '제목 없음';
@@ -967,15 +970,8 @@ function displayPost(data) {
   authorProfile.textContent = authorName.charAt(0).toUpperCase();
   document.getElementById('authorName').textContent = authorName;
 
-  // 작성일
-  const createdAt = data.CREATED_AT_FORMATTED || 
-    new Date(data.CREATED_AT).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).replace(/\. /g, '.').replace(/\.$/, '');
+  // 작성일 (yyyy.mm.dd hh:mm) - 서버 포맷 대신 직접 포맷
+  const createdAt = formatDateTime(data.CREATED_AT || data.CREATED_AT_FORMATTED);
   document.getElementById('postDate').textContent = createdAt;
 
   // 조회수
@@ -1374,7 +1370,7 @@ function createCommentElement(comment) {
             <div class="comment-meta">
               <span class="comment-index">#${comment.COMMENT_INDEX}</span>
               <span>•</span>
-              <span>${comment.CREATED_AT_FORMATTED}</span>
+              <span>${formatDateTime(comment.CREATED_AT || comment.CREATED_AT_FORMATTED)}</span>
             </div>
           </div>
         </div>
@@ -1392,7 +1388,7 @@ function createCommentElement(comment) {
             <div class="comment-meta">
               <span class="comment-index">#${comment.COMMENT_INDEX}</span>
               <span>•</span>
-              <span>${comment.CREATED_AT_FORMATTED}</span>
+              <span>${formatDateTime(comment.CREATED_AT || comment.CREATED_AT_FORMATTED)}</span>
               ${isEdited ? '<span>• (수정됨)</span>' : ''}
             </div>
           </div>

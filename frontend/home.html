@@ -24,11 +24,13 @@
         <a href="/register.html" class="auth-link">회원가입</a>
       </div>
       <header class="home-header">
-        <h1 class="service-title">샌냠 sannyam</h1>
+        <h1 class="service-title">
+          <img src="/uploads/icon_logo/logo_veg.svg" class="service-logo" alt="샌냠 로고" title="샌냠 sannyam">
+        </h1>
 
         <section class="search-area">
           <div class="search-bar" role="search">
-            <input class="search-input" id="homeSearchInput" type="search" placeholder="원하는 샌드위치 레시피를 검색해보세요!" aria-label="전체 게시글 검색">
+            <input class="search-input" id="homeSearchInput" type="search" placeholder="키워드로 검색해보세요!" aria-label="전체 게시글 검색">
             <button class="search-button" id="homeSearchButton" type="button" aria-label="검색 실행">
               ↵
             </button>
@@ -69,13 +71,27 @@
     function applyAuthState(user, gnbRefs) {
       const authActions = document.getElementById('authActions');
       const isLoggedIn = !!user;
+      const currentWidth = window.innerWidth;
+      const isMobile = currentWidth <= 768;
+
+      console.log('[Home Debug] applyAuthState called - width:', currentWidth, 'isMobile:', isMobile, 'isLoggedIn:', isLoggedIn);
 
       if (authActions) {
         authActions.style.display = isLoggedIn ? 'none' : 'flex';
       }
 
       if (gnbRefs && gnbRefs.myInfoBtn) {
-        gnbRefs.myInfoBtn.style.display = isLoggedIn ? 'flex' : 'none';
+        console.log('[Home Debug] myInfoBtn found, current display:', gnbRefs.myInfoBtn.style.display);
+        // 모바일에서는 항상 프로필 버튼 표시, PC에서는 로그인 시에만 표시
+        if (isMobile) {
+          gnbRefs.myInfoBtn.style.setProperty('display', 'flex', 'important');
+          console.log('[Home Debug] Set myInfoBtn display to flex !important (mobile mode)');
+        } else {
+          gnbRefs.myInfoBtn.style.setProperty('display', isLoggedIn ? 'flex' : 'none', 'important');
+          console.log('[Home Debug] Set myInfoBtn display to', isLoggedIn ? 'flex' : 'none', '!important (PC mode)');
+        }
+      } else {
+        console.log('[Home Debug] myInfoBtn not found or gnbRefs is null');
       }
     }
 
@@ -183,14 +199,13 @@
       // 반응형 처리
       function updateSlidesPerView() {
         const width = window.innerWidth;
-        if (width < 540) {
-          slidesPerView = 1;
-        } else if (width < 768) {
-          slidesPerView = 2;
-        } else if (width < 1024) {
-          slidesPerView = 3;
+        // 최소 2개, 최대 4개 표시
+        if (width < 700) {
+          slidesPerView = 2; // 700px 미만: 2개 표시
+        } else if (width <= 1024) {
+          slidesPerView = 3; // 700px ~ 1024px: 3개 표시
         } else {
-          slidesPerView = 4;
+          slidesPerView = 4; // 1024px 초과: 4개 표시
         }
         updateSliderButtons();
         updatePagination();
@@ -198,6 +213,30 @@
 
       window.addEventListener('resize', updateSlidesPerView);
       updateSlidesPerView();
+      
+      // 모바일 스와이프 지원: 스크롤 이벤트로 슬라이드 상태 동기화
+      const slider = document.getElementById('featuredPosts');
+      if (slider) {
+        let isScrolling = false;
+        slider.addEventListener('scroll', () => {
+          if (!isScrolling) {
+            isScrolling = true;
+            requestAnimationFrame(() => {
+              const cardWidth = slider.children[0]?.offsetWidth || 0;
+              const gap = parseInt(getComputedStyle(slider).gap) || 24;
+              const scrollLeft = slider.scrollLeft;
+              const newSlide = Math.round(scrollLeft / (cardWidth + gap));
+              
+              if (newSlide !== currentSlide && newSlide >= 0) {
+                currentSlide = newSlide;
+                updateSliderButtons();
+                updatePagination();
+              }
+              isScrolling = false;
+            });
+          }
+        });
+      }
     }
 
     function renderFeaturedPosts(posts) {
@@ -339,15 +378,18 @@
 
       await Gnb.render({
         containerId: 'gnb-root',
-        activeMenu: null,
-        showMyInfo: !!currentUser,
+        activeMenu: 'home',
+        showMyInfo: true, /* 모바일에서도 프로필 버튼 항상 표시 */
         onReady: (refs) => {
           gnbRefs = refs;
           setupHomeGnb(refs);
+          applyAuthState(currentUser, gnbRefs);
+          // 뷰포트가 변하면 가시성을 다시 계산
+          window.addEventListener('resize', () => {
+            applyAuthState(getStoredUser(), gnbRefs);
+          });
         }
       });
-
-      applyAuthState(currentUser, gnbRefs);
 
       initSearch();
       loadHomeData();
