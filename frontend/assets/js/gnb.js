@@ -62,9 +62,9 @@
     return `
       <nav class="lnb" id="globalGnbNav" aria-label="글로벌 내비게이션">
         <div class="lnb-top">
-          <button class="lnb-button" id="homeBtn" data-menu="home" title="홈으로 이동">
-            <img src="/uploads/icon_logo/gnb_home.svg" alt="홈 아이콘" title="홈 Home">
-          </button>
+          <a class="lnb-logo" href="/home.html" title="홈으로 이동">
+            <img src="/uploads/icon_logo/gnb_home.svg" class="lnb-logo" alt="홈 아이콘" title="홈 Home">
+          </a>
           <button class="lnb-button" id="recipeBtn" data-menu="recipe" title="이렇게 만들어요">
             <img src="/uploads/icon_logo/gnb_recipe.svg" alt="레시피 아이콘" title="이렇게 만들어요">
           </button>
@@ -84,15 +84,10 @@
 
   function setActive(navElement, activeMenu) {
     if (!navElement || !activeMenu) return;
-    
-    // 모든 active 클래스 제거
-    navElement.querySelectorAll('.lnb-button').forEach((btn) => btn.classList.remove('active'));
-    
-    // 해당 메뉴 버튼에 active 클래스 추가
     const target = navElement.querySelector(`[data-menu="${activeMenu}"]`);
-    if (target) {
-      target.classList.add('active');
-    }
+    if (!target) return;
+    navElement.querySelectorAll('.lnb-button').forEach((btn) => btn.classList.remove('active'));
+    target.classList.add('active');
   }
 
   function setupProfileMenu(navElement) {
@@ -193,51 +188,6 @@
     const navElement = container.querySelector('#globalGnbNav');
     setActive(navElement, activeMenu);
 
-    // 모바일에서 프로필 버튼 강제 노출 (미로그인 초기 진입 시 보이지 않는 문제 방지)
-    const profileBtn = navElement.querySelector('#myInfoBtn');
-    const profileWrapper = navElement.querySelector('.lnb-profile-wrapper');
-    const currentWidth = window.innerWidth;
-    const isMobile = currentWidth <= 768;
-    console.log('[GNB Debug] Render - window.innerWidth:', currentWidth, 'isMobile:', isMobile);
-    if (profileBtn) {
-      console.log('[GNB Debug] profileBtn found, current display:', profileBtn.style.display);
-      // 모바일에서는 항상 표시
-      if (isMobile) {
-        profileBtn.style.setProperty('display', 'flex', 'important');
-        console.log('[GNB Debug] Set profileBtn display to flex !important (mobile mode)');
-      }
-    }
-    if (profileWrapper) {
-      console.log('[GNB Debug] profileWrapper found, current display:', profileWrapper.style.display);
-    }
-
-    // 홈 버튼 클릭 이벤트
-    const homeBtn = navElement.querySelector('#homeBtn');
-    if (homeBtn && !homeBtn.dataset.eventRegistered) {
-      homeBtn.dataset.eventRegistered = 'true';
-      homeBtn.addEventListener('click', () => {
-        window.location.href = '/home.html';
-      });
-    }
-
-    // 레시피 버튼 클릭 이벤트 (onReady에서 커스텀 핸들러가 없는 경우만)
-    const recipeBtn = navElement.querySelector('#recipeBtn');
-    if (recipeBtn && !recipeBtn.dataset.eventRegistered) {
-      recipeBtn.dataset.eventRegistered = 'true';
-      recipeBtn.addEventListener('click', () => {
-        window.location.href = '/board.html?type=recipe';
-      });
-    }
-
-    // 정보 공유 버튼 클릭 이벤트 (onReady에서 커스텀 핸들러가 없는 경우만)
-    const tipBtn = navElement.querySelector('#tipBtn');
-    if (tipBtn && !tipBtn.dataset.eventRegistered) {
-      tipBtn.dataset.eventRegistered = 'true';
-      tipBtn.addEventListener('click', () => {
-        window.location.href = '/board.html?type=tip';
-      });
-    }
-
     // 프로필 메뉴가 있으면 설정
     setupProfileMenu(navElement);
 
@@ -256,7 +206,6 @@
     if (typeof onReady === 'function') {
       onReady({
         navElement,
-        homeBtn: navElement.querySelector('#homeBtn'),
         recipeBtn: navElement.querySelector('#recipeBtn'),
         tipBtn: navElement.querySelector('#tipBtn'),
         myInfoBtn: navElement.querySelector('#myInfoBtn'),
@@ -271,4 +220,3 @@
     updateProfileImage: updateProfileImage,
   };
 })(window);
-

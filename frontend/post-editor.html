@@ -493,11 +493,14 @@ const SecurityUtils = {
   }
 };
 
-async function uploadImageFile(file) {
+async function uploadImageFile(file, isPostImage = false) {
   const formData = new FormData();
   formData.append('image', file);
   
-  const response = await fetch('/api/upload/image', {
+  // 게시글 이미지는 /api/upload/post-image, 프로필 이미지는 /api/upload/image
+  const endpoint = isPostImage ? '/api/upload/post-image' : '/api/upload/image';
+  
+  const response = await fetch(endpoint, {
     method: 'POST',
     body: formData
   });
@@ -935,7 +938,8 @@ const EditorManager = {
       }
       
       try {
-        const result = await uploadImageFile(file);
+        // 게시글 이미지로 업로드
+        const result = await uploadImageFile(file, true);
         
         // 이미지를 에디터에 삽입
         editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
@@ -1743,7 +1747,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       try {
-        const result = await uploadImageFile(file);
+        // 게시글 이미지로 업로드
+        const result = await uploadImageFile(file, true);
         setThumbnailSelection(result.url, result.originalName || file.name);
       } catch (error) {
         console.error('대표 이미지 업로드 오류:', error);
