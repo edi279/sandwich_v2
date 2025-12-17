@@ -198,11 +198,11 @@
 
 .tag-badge {
   display: inline-block;
-  padding: 0.4rem 0.8rem;
-  background-color: var(--bg-light);
-  color: var(--text-dark);
-  border-radius: var(--radius-2xl);
+  padding: 0.2rem 0.6rem;
+  background-color: transparent !important;
+  color: var(--dust-purple) !important;
   font-size: var(--font-size-xs);
+  border-radius: 0 !important;
 }
 
 .tag-button {

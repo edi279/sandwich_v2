@@ -214,6 +214,26 @@
 #image-resize-toolbar button.reset-btn:hover {
   background: #ffe69c;
 }
+
+/* 미리보기 모달 내 H1, H2, H3 스타일 (에디터와 동일하게) */
+#previewContent h1 {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.65em 0 0.4em 0;
+}
+#previewContent h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.6em 0 0.4em 0;
+}
+#previewContent h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.55em 0 0.4em 0;
+}
 </style>
 </head>
 <body>
@@ -275,6 +295,9 @@
               </select>
             </div>
             <div class="editor-top-bar-right">
+              <button type="button" class="btn btn-outline-info" id="loadDraftBtn">
+                불러오기
+              </button>
               <button type="button" class="btn btn-outline-secondary" id="saveBtn">
                 임시 저장
               </button>
@@ -367,6 +390,7 @@
             <input type="text" class="form-control tag-input mt-2" id="tagInput" 
                    placeholder="입력 후 Enter 키를 누르세요. 최대 10개 추가할 수 있습니다." 
                    autocomplete="off" maxlength="50">
+            <div id="tagList" class="mt-2"></div>
           </div>
         </form>
       </div>
@@ -430,10 +454,10 @@ const SecurityUtils = {
   sanitizeHtml(dirty) {
     return DOMPurify.sanitize(dirty, {
       ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
-                     'blockquote', 'a', 'img', 'code', 'pre', 'iframe'],
+                     'blockquote', 'a', 'img', 'code', 'pre', 'iframe', 'div'],
       ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'width', 'height', 'frameborder', 'allow', 
-                     'allowfullscreen', 'style'],
-      ALLOW_DATA_ATTR: false
+                     'allowfullscreen', 'style', 'data-youtube-video'],
+      ALLOW_DATA_ATTR: true
     });
   },
   
@@ -453,33 +477,80 @@ const SecurityUtils = {
     return null;
   },
   
-  // 유튜브 링크를 iframe으로 변환
+  // 유튜브 링크를 Tiptap YouTube 노드 형식으로 변환
   convertYouTubeToIframe(html) {
     if (!html || typeof html !== 'string') return html;
     
-    // 이미 iframe이 포함되어 있으면 변환하지 않음
-    if (html.includes('<iframe') && html.includes('youtube.com/embed')) {
-      return html;
-    }
-    
-    // 유튜브 URL 패턴 매칭 (다양한 형식 지원)
-    const youtubePatterns = [
-      /https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/gi,
-      /https?:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/gi,
-      /https?:\/\/(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]+)/gi
-    ];
-    
     let result = html;
     
-    youtubePatterns.forEach(pattern => {
-      result = result.replace(pattern, (match, videoId) => {
-        return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe>`;
-      });
+    // 이미 Tiptap YouTube 노드가 있으면 그대로 반환
+    if (result.includes('data-youtube-video')) {
+      return result;
+    }
+    
+    // 비디오 ID 추출 헬퍼 함수 (쿼리 파라미터 제거)
+    const extractVideoId = (url) => {
+      const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/,
+        /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]+)/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+      return null;
+    };
+    
+    // 1. <a> 태그 내의 유튜브 링크 처리 (먼저 처리하여 중복 방지)
+    result = result.replace(/<a[^>]*href=["']?(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^"'\s&?#]+))["']?[^>]*>(.*?)<\/a>/gi, (match, url, videoIdPart, linkText) => {
+      // 이미 변환된 경우는 건너뛰기
+      if (match.includes('data-youtube-video')) return match;
+      const videoId = extractVideoId(url);
+      if (videoId) {
+        return `<div data-youtube-video="${videoId}"><iframe src="https://www.youtube.com/embed/${videoId}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe></div>`;
+      }
+      return match;
     });
     
-    // <a> 태그 내의 유튜브 링크도 처리
-    result = result.replace(/<a[^>]*>(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+))<\/a>/gi, (match, url, videoId) => {
-      return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe>`;
+    // 2. 기존 iframe을 Tiptap YouTube 노드 형식으로 변환
+    // src 속성에서 비디오 ID만 추출 (이미 변환된 것은 제외)
+    result = result.replace(/<iframe[^>]*src=["']?([^"']+)["']?[^>]*>.*?<\/iframe>/gi, (match, srcValue) => {
+      // 이미 data-youtube-video가 포함된 경우는 건너뛰기
+      if (match.includes('data-youtube-video')) return match;
+      // src 속성에 이미 변환된 HTML이 들어가 있는지 확인 (중첩 방지)
+      if (srcValue.includes('<div') || srcValue.includes('data-youtube-video')) return match;
+      
+      // YouTube embed URL에서 비디오 ID 추출
+      const videoIdMatch = srcValue.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+      if (!videoIdMatch || !videoIdMatch[1]) return match;
+      
+      const videoId = videoIdMatch[1];
+      return `<div data-youtube-video="${videoId}"><iframe src="https://www.youtube.com/embed/${videoId}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe></div>`;
+    });
+    
+    // 3. <p> 태그 내부의 유튜브 URL 처리
+    result = result.replace(/<p[^>]*>(.*?)(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+))([^<]*?)<\/p>/gi, (match, before, url, videoId, after) => {
+      // 이미 변환된 경우는 건너뛰기
+      if (match.includes('data-youtube-video')) return match;
+      const content = (before + url + after).trim();
+      if (content === url || content.replace(url, '').trim() === '') {
+        return `<div data-youtube-video="${videoId}"><iframe src="https://www.youtube.com/embed/${videoId}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe></div>`;
+      }
+      return match;
+    });
+    
+    // 4. <p> 태그 내부의 youtu.be URL 처리
+    result = result.replace(/<p[^>]*>(.*?)(https?:\/\/youtu\.be\/([a-zA-Z0-9_-]+))([^<]*?)<\/p>/gi, (match, before, url, videoId, after) => {
+      // 이미 변환된 경우는 건너뛰기
+      if (match.includes('data-youtube-video')) return match;
+      const content = (before + url + after).trim();
+      if (content === url || content.replace(url, '').trim() === '') {
+        return `<div data-youtube-video="${videoId}"><iframe src="https://www.youtube.com/embed/${videoId}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width: 100%;"></iframe></div>`;
+      }
+      return match;
     });
     
     return result;
@@ -492,6 +563,14 @@ const SecurityUtils = {
     return true;
   }
 };
+
+// 업로드한 이미지 URL 추적 (게시글 작성 중단 시 삭제용)
+let uploadedImageUrls = new Set();
+let usedImageUrls = new Set(); // 게시글에 실제로 사용된 이미지
+
+// 페이지 상태 플래그 (전역 스코프)
+let isPublished = false;
+let isEditMode = false;
 
 async function uploadImageFile(file, isPostImage = false) {
   const formData = new FormData();
@@ -511,7 +590,29 @@ async function uploadImageFile(file, isPostImage = false) {
     throw new Error(result.message || '이미지 업로드에 실패했습니다.');
   }
 
+  // 게시글 이미지인 경우 추적 목록에 추가
+  if (isPostImage && result.url) {
+    uploadedImageUrls.add(result.url);
+  }
+
   return result;
+}
+
+// 에디터에서 사용된 이미지 URL 추출
+function extractImageUrlsFromContent(html) {
+  const imgUrls = new Set();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const images = doc.querySelectorAll('img');
+  
+  images.forEach(img => {
+    const src = img.getAttribute('src');
+    if (src && src.startsWith('/uploads/images/')) {
+      imgUrls.add(src);
+    }
+  });
+  
+  return imgUrls;
 }
 
 // Tiptap 에디터 인스턴스
@@ -803,6 +904,7 @@ const EditorManager = {
     };
 
     const renderTags = () => {
+      if (!tagList) return;
       tagList.innerHTML = tags.map(tag => 
         `<span class="badge bg-primary tag-badge">${SecurityUtils.escapeHtml(tag)} <span class="ms-1" style="cursor: pointer;">×</span></span>`
       ).join('');
@@ -812,6 +914,35 @@ const EditorManager = {
           removeTag(tags[index]);
         });
       });
+    };
+
+    // 태그 초기화 및 설정 함수 (외부에서 호출 가능)
+    const clearTags = () => {
+      tags.length = 0;
+      updateTagInput();
+      renderTags();
+    };
+
+    const setTags = (tagArray) => {
+      clearTags();
+      tagArray.forEach(tag => {
+        if (tag && tag.trim()) {
+          const trimmedTag = tag.trim().toLowerCase();
+          if (!tags.includes(trimmedTag) && tags.length < maxTags) {
+            tags.push(trimmedTag);
+          }
+        }
+      });
+      updateTagInput();
+      renderTags();
+    };
+
+    // 전역에서 접근 가능하도록 저장
+    window.tagManager = {
+      clearTags,
+      setTags,
+      addTag,
+      removeTag
     };
 
     tagInput.addEventListener('keydown', (e) => {
@@ -889,6 +1020,17 @@ const EditorManager = {
       // XSS 보안 처리
       content = SecurityUtils.sanitizeHtml(content);
       
+      // 임시 저장 시에도 사용된 이미지 추출 및 표시 (이미지 삭제 방지)
+      const imageUrls = extractImageUrlsFromContent(content);
+      imageUrls.forEach(url => usedImageUrls.add(url));
+      
+      // 썸네일 이미지도 사용된 것으로 표시
+      const thumbnailUrlField = document.getElementById('thumbnailUrl');
+      const thumbnailUrlValue = thumbnailUrlField ? thumbnailUrlField.value.trim() : '';
+      if (thumbnailUrlValue && thumbnailUrlValue.startsWith('/uploads/images/')) {
+        usedImageUrls.add(thumbnailUrlValue);
+      }
+      
       const draftData = {
         title: SecurityUtils.escapeHtml(title),
         content: content,
@@ -903,6 +1045,103 @@ const EditorManager = {
       alert('임시 저장되었습니다.');
     });
 
+    // 불러오기 버튼 이벤트
+    document.getElementById('loadDraftBtn').addEventListener('click', () => {
+      this.loadDraft();
+    });
+
+  },
+
+  // 임시 저장 데이터 불러오기 함수
+  loadDraft() {
+    const savedDraft = localStorage.getItem('draft_post');
+    if (!savedDraft) {
+      alert('불러올 임시 저장 데이터가 없습니다.');
+      return;
+    }
+
+    try {
+      const draft = JSON.parse(savedDraft);
+      
+      // 현재 내용이 있는 경우 확인
+      const hasContent = this.titleElement.value.trim() || 
+                        (editor && editor.getText().trim());
+      
+      if (hasContent) {
+        if (!confirm('현재 작성 중인 내용이 있습니다. 임시 저장된 내용으로 덮어쓰시겠습니까?')) {
+          return;
+        }
+      }
+
+      // 제목 복원
+      this.titleElement.value = draft.title || '';
+      
+      // 에디터 내용 복원
+      if (editor && draft.content) {
+        editor.commands.setContent(draft.content);
+      }
+      
+      // 카테고리 복원 (메뉴 로드 완료 후)
+      if (draft.category) {
+        setTimeout(() => {
+          const categorySelect = document.getElementById('postCategory');
+          if (categorySelect) {
+            categorySelect.value = draft.category;
+            updateThumbnailVisibility(draft.category);
+            
+            // 카테고리 변경 이벤트 트리거하여 소메뉴 업데이트
+            categorySelect.dispatchEvent(new Event('change'));
+            
+            // 소메뉴도 복원
+            if (draft.subcategory) {
+              setTimeout(() => {
+                const subCategorySelect = document.getElementById('postSubCategory');
+                if (subCategorySelect) {
+                  subCategorySelect.value = draft.subcategory;
+                }
+              }, 100);
+            }
+
+            // 썸네일 복원
+            if (draft.category === '1' && draft.thumbnailUrl) {
+              setThumbnailSelection(draft.thumbnailUrl, draft.thumbnailUrl);
+            } else {
+              clearThumbnailSelection();
+            }
+          }
+        }, 300);
+      }
+      
+      // 태그 복원
+      if (draft.tags) {
+        const tags = draft.tags.split(',').map(t => t.trim()).filter(t => t);
+        // tagManager를 통해 태그 설정
+        if (window.tagManager && window.tagManager.setTags) {
+          window.tagManager.setTags(tags);
+        } else {
+          // tagManager가 아직 초기화되지 않은 경우 직접 처리
+          const tagList = document.getElementById('tagList');
+          if (tagList) {
+            tagList.innerHTML = '';
+          }
+          tags.forEach(tag => {
+            const tagInput = document.getElementById('tagInput');
+            tagInput.value = tag;
+            tagInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+          });
+        }
+      } else {
+        // 태그가 없는 경우 초기화
+        if (window.tagManager && window.tagManager.clearTags) {
+          window.tagManager.clearTags();
+        }
+      }
+      
+      alert('임시 저장된 내용을 불러왔습니다.');
+    } catch (e) {
+      console.error('임시 저장 데이터 복원 실패:', e);
+      alert('임시 저장 데이터를 불러오는 중 오류가 발생했습니다.');
+    }
   },
 
 
@@ -943,6 +1182,9 @@ const EditorManager = {
         
         // 이미지를 에디터에 삽입
         editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
+        
+        // 주의: 여기서는 usedImageUrls에 추가하지 않음
+        // 임시 저장 또는 발행 시에만 사용된 이미지로 표시됨
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
         alert(error.message || '이미지 업로드 중 오류가 발생했습니다.');
@@ -1456,6 +1698,17 @@ const EditorManager = {
     // HTML 정화 (XSS 방어)
     content = SecurityUtils.sanitizeHtml(content);
     
+    // 게시글에 사용된 이미지 URL 추출 및 추적
+    const imageUrls = extractImageUrlsFromContent(content);
+    imageUrls.forEach(url => usedImageUrls.add(url));
+    
+    // 썸네일 이미지도 사용된 것으로 표시
+    const thumbnailUrlField = document.getElementById('thumbnailUrl');
+    const thumbnailUrlValue = thumbnailUrlField ? thumbnailUrlField.value.trim() : '';
+    if (thumbnailUrlValue && thumbnailUrlValue.startsWith('/uploads/images/')) {
+      usedImageUrls.add(thumbnailUrlValue);
+    }
+    
     this.contentInput.value = content;
     
     // 카테고리 검증
@@ -1472,10 +1725,10 @@ const EditorManager = {
       return;
     }
 
-    const thumbnailUrlField = document.getElementById('thumbnailUrl');
-    const thumbnailUrlValue = thumbnailUrlField ? thumbnailUrlField.value.trim() : '';
+    // thumbnailUrlField는 이미 위에서 선언되어 있음
+    const thumbnailUrlValue2 = thumbnailUrlField ? thumbnailUrlField.value.trim() : '';
 
-    if (boardId === '1' && !thumbnailUrlValue) {
+    if (boardId === '1' && !thumbnailUrlValue2) {
       alert('레시피 게시판 게시글은 대표 이미지를 선택해야 합니다.');
       return;
     }
@@ -1484,7 +1737,7 @@ const EditorManager = {
     const urlParams = new URLSearchParams(window.location.search);
     const postId = urlParams.get('postId');
     const postType = urlParams.get('postType');
-    const isEditMode = postId && postType;
+    const localIsEditMode = postId && postType; // 로컬 변수로 수정 모드 확인
     
     // 로그인한 사용자 정보 가져오기
     const user = getStoredUser();
@@ -1505,7 +1758,7 @@ const EditorManager = {
       tags: document.getElementById('postTags').value || '',
       authorName: authorName,
       userId: userId,
-      thumbnailUrl: boardId === '1' ? thumbnailUrlValue : ''
+      thumbnailUrl: boardId === '1' ? thumbnailUrlValue2 : ''
     };
     
     // 게시판 ID에 따라 API 엔드포인트 결정
@@ -1513,7 +1766,7 @@ const EditorManager = {
     
     try {
       let response;
-      if (isEditMode) {
+      if (localIsEditMode) {
         // 수정 모드: PUT 요청
         response = await fetch(`${apiEndpoint}/${postId}`, {
           method: 'PUT',
@@ -1539,7 +1792,10 @@ const EditorManager = {
         // 발행 완료 플래그 설정 (페이지 이탈 경고 비활성화)
         isPublished = true;
         
-        alert(isEditMode ? '게시글이 수정되었습니다!' : '게시글이 발행되었습니다!');
+        // 게시글이 발행되었으므로 모든 업로드된 이미지를 사용된 것으로 표시
+        uploadedImageUrls.forEach(url => usedImageUrls.add(url));
+        
+        alert(localIsEditMode ? '게시글이 수정되었습니다!' : '게시글이 발행되었습니다!');
         
         // 임시 저장 데이터 삭제
         localStorage.removeItem('postDraft');
@@ -1549,7 +1805,7 @@ const EditorManager = {
     previewModal.hide();
         }
         
-        if (isEditMode) {
+        if (localIsEditMode) {
           // 수정 모드: 상세 페이지로 이동 (postType이 이미 MENU_ID)
           window.location.href = `/post-detail.html?type=${postType}&id=${postId}`;
         } else {
@@ -1561,11 +1817,11 @@ const EditorManager = {
           window.location.href = `/board.html?${params.toString()}`;
         }
       } else {
-        alert(isEditMode ? '게시글 수정에 실패했습니다: ' + result.message : '게시글 발행에 실패했습니다: ' + result.message);
+        alert(localIsEditMode ? '게시글 수정에 실패했습니다: ' + result.message : '게시글 발행에 실패했습니다: ' + result.message);
       }
     } catch (error) {
       console.error('게시글 처리 오류:', error);
-      alert(isEditMode ? '게시글 수정 중 오류가 발생했습니다.' : '게시글 발행 중 오류가 발생했습니다.');
+      alert(localIsEditMode ? '게시글 수정 중 오류가 발생했습니다.' : '게시글 발행 중 오류가 발생했습니다.');
     }
   },
   
@@ -1750,6 +2006,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 게시글 이미지로 업로드
         const result = await uploadImageFile(file, true);
         setThumbnailSelection(result.url, result.originalName || file.name);
+        
+        // 주의: 여기서는 usedImageUrls에 추가하지 않음
+        // 임시 저장 또는 발행 시에만 사용된 이미지로 표시됨
       } catch (error) {
         console.error('대표 이미지 업로드 오류:', error);
         alert(error.message || '대표 이미지 업로드 중 오류가 발생했습니다.');
@@ -1866,7 +2125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = getUrlParams();
   const postId = urlParams.postId;
   const postType = urlParams.postType; // '1' (레시피) or '2' (정보 공유) - MENU_TB의 MENU_ID
-  let isEditMode = false;
+  // isEditMode는 전역 스코프에서 이미 선언되어 있음
   let editPostId = null;
   let editPostType = null;
   
@@ -1904,9 +2163,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         titleCount.textContent = (data.TITLE || '').length;
       }
       
-      // 본문 설정
+      // 본문 설정 (유튜브 링크를 iframe으로 변환)
       if (editor && data.CONTENT) {
-        editor.commands.setContent(data.CONTENT);
+        console.log('🔍 원본 CONTENT (처음 500자):', data.CONTENT.substring(0, 500));
+        // 유튜브 링크를 iframe으로 변환
+        let contentWithIframe = SecurityUtils.convertYouTubeToIframe(data.CONTENT);
+        console.log('🔍 변환된 CONTENT (처음 500자):', contentWithIframe.substring(0, 500));
+        
+        // DOMPurify로 정화 (iframe 유지)
+        contentWithIframe = SecurityUtils.sanitizeHtml(contentWithIframe);
+        console.log('🔍 정화된 CONTENT (처음 500자):', contentWithIframe.substring(0, 500));
+        
+        // 에디터에 설정
+        editor.commands.setContent(contentWithIframe);
+        
+        // 에디터 내용 확인
+        setTimeout(() => {
+          const editorHtml = editor.getHTML();
+          console.log('🔍 에디터 내부 HTML (처음 500자):', editorHtml.substring(0, 500));
+        }, 500);
       }
       console.log('🔍 본문 설정 완료:', data.CONTENT ? '있음' : '없음');
       
@@ -1983,63 +2258,49 @@ document.addEventListener('DOMContentLoaded', async () => {
       setDropdownsFromUrl();
     } else {
       // 임시 저장 데이터 복원 (URL 파라미터가 없을 때만)
-  const savedDraft = localStorage.getItem('draft_post');
-  if (savedDraft) {
-    try {
-      const draft = JSON.parse(savedDraft);
-      if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
-        EditorManager.titleElement.value = draft.title || '';
-        if (editor && draft.content) {
-          editor.commands.setContent(draft.content);
-        }
-        if (draft.category) {
-              // 메뉴 로드 완료 후 복원
-              setTimeout(() => {
-          document.getElementById('postCategory').value = draft.category;
-                updateThumbnailVisibility(draft.category);
-                // 카테고리 변경 이벤트 트리거하여 소메뉴 업데이트
-                categorySelect.dispatchEvent(new Event('change'));
-                
-                // 소메뉴도 복원
-                if (draft.subcategory) {
-                  setTimeout(() => {
-                    document.getElementById('postSubCategory').value = draft.subcategory;
-                  }, 100);
-                }
-
-                if (draft.category === '1' && draft.thumbnailUrl) {
-                  setThumbnailSelection(draft.thumbnailUrl, draft.thumbnailUrl);
-                } else {
-                  clearThumbnailSelection();
-                }
-              }, 300);
-        }
-        if (draft.tags) {
-          const tags = draft.tags.split(',');
-          tags.forEach(tag => {
-            document.getElementById('tagInput').value = tag;
-            document.getElementById('tagInput').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-          });
+      const savedDraft = localStorage.getItem('draft_post');
+      if (savedDraft) {
+        if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
+          EditorManager.loadDraft();
         }
       }
-    } catch (e) {
-      console.error('임시 저장 데이터 복원 실패:', e);
-        }
     }
-  }
   });
 });
 
-// 페이지 이탈 경고 플래그
-let isPublished = false;
-
-// 페이지 이탈 경고
+// 페이지 이탈 시 사용되지 않은 이미지 삭제 및 경고
 window.addEventListener('beforeunload', (e) => {
-  // 발행이 완료되었으면 경고하지 않음
-  if (isPublished) {
+  // 발행이 완료되었거나 수정 모드이면 이미지 삭제하지 않음
+  if (isPublished || isEditMode) {
+    // 수정 모드나 발행 완료 시에는 경고만 처리
+    if (!isPublished) {
+      const title = EditorManager.titleElement.value.trim();
+      const content = editor ? editor.getText().trim() : '';
+      
+      if (title || content) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    }
     return;
   }
   
+  // 게시글이 발행되지 않았고, 업로드된 이미지가 있는 경우에만 삭제
+  if (uploadedImageUrls.size > 0) {
+    const unusedUrls = Array.from(uploadedImageUrls).filter(url => !usedImageUrls.has(url));
+    if (unusedUrls.length > 0) {
+      // sendBeacon으로 삭제 요청 전송 (beforeunload에서는 fetch가 취소될 수 있음)
+      try {
+        const data = JSON.stringify({ urls: unusedUrls });
+        const blob = new Blob([data], { type: 'application/json' });
+        navigator.sendBeacon('/api/upload/images/delete', blob);
+      } catch (error) {
+        console.error('사용되지 않은 이미지 삭제 요청 실패:', error);
+      }
+    }
+  }
+  
+  // 페이지 이탈 경고
   const title = EditorManager.titleElement.value.trim();
   const content = editor ? editor.getText().trim() : '';
   

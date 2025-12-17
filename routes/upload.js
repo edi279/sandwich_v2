@@ -131,6 +131,76 @@ router.post('/post-image', postImageUpload.single('image'), (req, res) => {
   }
 });
 
+// 여러 이미지 일괄 삭제 엔드포인트 (게시글 작성 중단 시 사용)
+router.post('/images/delete', express.raw({ type: ['application/json', 'text/plain'] }), (req, res) => {
+  try {
+    // sendBeacon으로 전송된 경우 body가 Buffer일 수 있음
+    let urls;
+    try {
+      const bodyStr = req.body.toString();
+      const parsed = JSON.parse(bodyStr);
+      urls = parsed.urls;
+    } catch (e) {
+      // 일반 JSON 요청인 경우
+      if (req.body && typeof req.body === 'object' && req.body.urls) {
+        urls = req.body.urls;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: '유효하지 않은 요청 데이터입니다.'
+        });
+      }
+    }
+    
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '삭제할 이미지 URL 배열이 필요합니다.'
+      });
+    }
+    
+    const deleted = [];
+    const notFound = [];
+    
+    urls.forEach(url => {
+      if (!url || typeof url !== 'string') return;
+      
+      // 게시글 이미지만 삭제 (프로필 이미지는 삭제하지 않음)
+      if (!url.startsWith('/uploads/images/')) {
+        return;
+      }
+      
+      const filename = url.replace('/uploads/images/', '');
+      const filePath = path.join(postImageUploadDir, filename);
+      
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          deleted.push(url);
+        } catch (err) {
+          console.error(`이미지 삭제 실패: ${url}`, err);
+        }
+      } else {
+        notFound.push(url);
+      }
+    });
+    
+    res.json({
+      success: true,
+      deleted: deleted.length,
+      notFound: notFound.length,
+      deletedUrls: deleted,
+      notFoundUrls: notFound
+    });
+  } catch (error) {
+    console.error('이미지 일괄 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '이미지 삭제 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 에러 핸들러
 router.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
