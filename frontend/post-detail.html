@@ -145,6 +145,16 @@
   color: var(--text-dark);
   margin-bottom: 2rem;
   min-height: 200px;
+  /* 에디터에서 입력한 개행/공백(탭 들여쓰기용)을 그대로 렌더링 */
+  white-space: pre-wrap;
+  tab-size: 4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 에디터에서 "엔터만 여러 번" 친 경우(빈 문단)도 줄 높이를 유지 */
+.post-content p:empty::before {
+  content: "\00a0"; /* NBSP */
 }
 
 .post-content h1 {
@@ -791,9 +801,9 @@
               <span id="postViews"></span>
             </div>
           </div>
-          <!-- 수정/삭제 메뉴 버튼 -->
+          <!-- 수정/삭제 메뉴 버튼 (작성자만 표시) -->
           <div class="post-meta-right">
-            <button class="post-menu-btn" id="postMenuBtn" title="더보기">
+            <button class="post-menu-btn" id="postMenuBtn" title="더보기" style="display: none;">
               <i class="bi bi-three-dots-vertical"></i>
             </button>
             <!-- 수정/삭제 모달 -->
@@ -967,6 +977,7 @@ function displayPost(data) {
   // 게시글 정보 저장 (목록으로 이동 시 사용)
   currentPostData.categoryId = data.CATEGORY || null;
   currentPostData.createdAt = data.CREATED_AT || null;
+  currentPostData.authorId = data.AUTHOR_ID || null; // 작성자 ID 저장
   
   // 카테고리
   const categoryEl = document.getElementById('postCategory');
@@ -1028,6 +1039,54 @@ function displayPost(data) {
     console.error('⚠️ CONTENT를 찾을 수 없습니다. 모든 데이터 키:', Object.keys(data));
     console.error('⚠️ 전체 데이터:', data);
     contentBody.innerHTML = '<p style="color: var(--text-secondary);">내용이 없습니다.</p>';
+  }
+
+  // 수정/삭제 버튼 표시 여부 확인 (작성자만 표시)
+  const postMenuBtn = document.getElementById('postMenuBtn');
+  const postMenuModal = document.getElementById('postMenuModal');
+  const authorId = data.AUTHOR_ID || null;
+  const isAuthor = checkLoginStatus() && currentUser && currentUser.userId === authorId;
+  
+  if (postMenuBtn) {
+    if (isAuthor) {
+      // 작성자인 경우에만 버튼 표시
+      postMenuBtn.style.display = 'block';
+      
+      // 작성자인 경우에만 이벤트 리스너 등록
+      if (postMenuModal) {
+        postMenuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isVisible = postMenuModal.style.display === 'block';
+          postMenuModal.style.display = isVisible ? 'none' : 'block';
+        });
+        
+        // 모달 외부 클릭 시 닫기
+        document.addEventListener('click', (e) => {
+          if (!postMenuBtn.contains(e.target) && !postMenuModal.contains(e.target)) {
+            postMenuModal.style.display = 'none';
+          }
+        });
+        
+        // 수정/삭제 버튼 이벤트
+        document.getElementById('editPostBtn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          postMenuModal.style.display = 'none';
+          editPost();
+        });
+        
+        document.getElementById('deletePostBtn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          postMenuModal.style.display = 'none';
+          deletePost();
+        });
+      }
+    } else {
+      // 작성자가 아닌 경우 버튼 숨기기
+      postMenuBtn.style.display = 'none';
+      if (postMenuModal) {
+        postMenuModal.style.display = 'none';
+      }
+    }
   }
 
   // 태그
@@ -1765,6 +1824,18 @@ function editPost() {
     return;
   }
   
+  // 작성자 확인
+  if (!checkLoginStatus() || !currentUser) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  // 게시글 작성자 확인 (currentPostData에 저장된 AUTHOR_ID 사용)
+  if (currentPostData.authorId && currentUser.userId !== currentPostData.authorId) {
+    alert('본인이 작성한 게시글만 수정할 수 있습니다.');
+    return;
+  }
+  
   // post-editor.html로 이동하면서 postId와 postType 전달
   window.location.href = `/post-editor.html?postId=${postId}&postType=${postType}`;
 }
@@ -1876,37 +1947,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
   }
   
-  // 게시글 수정/삭제 메뉴 모달 토글
-  const postMenuBtn = document.getElementById('postMenuBtn');
-  const postMenuModal = document.getElementById('postMenuModal');
-  
-  if (postMenuBtn && postMenuModal) {
-    postMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isVisible = postMenuModal.style.display === 'block';
-      postMenuModal.style.display = isVisible ? 'none' : 'block';
-    });
-    
-    // 모달 외부 클릭 시 닫기
-    document.addEventListener('click', (e) => {
-      if (!postMenuBtn.contains(e.target) && !postMenuModal.contains(e.target)) {
-        postMenuModal.style.display = 'none';
-      }
-    });
-    
-    // 수정/삭제 버튼 이벤트
-    document.getElementById('editPostBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      postMenuModal.style.display = 'none';
-      editPost();
-    });
-    
-    document.getElementById('deletePostBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      postMenuModal.style.display = 'none';
-      deletePost();
-    });
-  }
+  // 게시글 수정/삭제 메뉴 이벤트는 displayPost 함수에서 작성자 확인 후 등록됨
   
   // 댓글 페이지네이션 버튼 이벤트
   document.getElementById('prevPageBtn').addEventListener('click', () => {

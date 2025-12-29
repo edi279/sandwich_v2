@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
+const cron = require('node-cron');
 const { testConnection } = require('./config/database');
+const { runCrawler } = require('./utils/crawler');
 const recipeRoutes = require('./routes/recipes');
 const tipRoutes = require('./routes/tips');
 const menuRoutes = require('./routes/menus');
@@ -134,10 +136,34 @@ app.get('*', (req, res) => {
   });
 });
 
+// 크롤링 스케줄러 설정 (매주 목요일 오후 2시)
+function setupCrawlerScheduler() {
+  // 매주 목요일 오후 2시 (0 14 * * 4)
+  // cron 표현식: 분 시 일 월 요일
+  // 4 = 목요일 (0=일요일, 1=월요일, ..., 6=토요일)
+  cron.schedule('0 14 * * 4', async () => {
+    console.log('크롤링 스케줄 실행:', new Date().toISOString());
+    try {
+      await runCrawler();
+      console.log('크롤링 스케줄 완료');
+    } catch (error) {
+      console.error('크롤링 스케줄 오류:', error);
+    }
+  }, {
+    scheduled: true,
+    timezone: 'Asia/Seoul'
+  });
+  
+  console.log('크롤링 스케줄러 설정 완료: 매주 목요일 오후 2시');
+}
+
 // 서버 시작 및 DB 연결 테스트
 async function startServer() {
   // 데이터베이스 연결 테스트
   await testConnection();
+  
+  // 크롤링 스케줄러 설정
+  setupCrawlerScheduler();
   
   app.listen(PORT, () => {
     console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);

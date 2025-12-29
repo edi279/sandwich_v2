@@ -1,5 +1,6 @@
 const express = require('express');
 const { pool } = require('../config/database');
+const { runCrawler } = require('../utils/crawler');
 
 const router = express.Router();
 
@@ -468,6 +469,33 @@ router.post('/posts', checkAdmin, async (req, res) => {
   } catch (error) {
     console.error('게시글 목록 조회 오류:', error);
     return res.status(500).json({ success: false, message: '게시글 목록 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// 크롤링 수동 실행 (관리자용)
+router.post('/crawler/run', checkAdmin, async (req, res) => {
+  try {
+    console.log('[관리자] 크롤링 수동 실행 요청');
+    
+    // 비동기로 크롤링 실행 (응답은 즉시 반환)
+    runCrawler()
+      .then(result => {
+        console.log('[관리자] 크롤링 완료:', result);
+      })
+      .catch(error => {
+        console.error('[관리자] 크롤링 오류:', error);
+      });
+    
+    return res.status(200).json({
+      success: true,
+      message: '크롤링이 시작되었습니다. 완료까지 시간이 걸릴 수 있습니다.'
+    });
+  } catch (error) {
+    console.error('크롤링 실행 오류:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: '크롤링 실행 중 오류가 발생했습니다.' 
+    });
   }
 });
 

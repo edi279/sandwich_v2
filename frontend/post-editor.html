@@ -216,6 +216,23 @@
 }
 
 /* 미리보기 모달 내 H1, H2, H3 스타일 (에디터와 동일하게) */
+#previewContent {
+  /* 에디터에서 입력한 개행/공백(탭 들여쓰기용)을 그대로 렌더링 */
+  white-space: pre-wrap;
+  tab-size: 4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 에디터에서 "엔터만 여러 번" 친 경우(빈 문단)도 동일하게 줄 높이를 유지 */
+#previewContent p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0.35em 0;
+}
+#previewContent p:empty::before {
+  content: "\00a0"; /* NBSP: 빈 문단에도 높이 확보 */
+}
 #previewContent h1 {
   font-size: 32px;
   font-weight: 600;
@@ -233,6 +250,62 @@
   font-weight: 600;
   line-height: 1.2;
   margin: 0.55em 0 0.4em 0;
+}
+
+/* 임시저장 UI (네이버 블로그 스타일: '저장' + 개수 클릭) */
+.draft-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #dee2e6;
+  border-radius: 999px;
+  background: #fff;
+}
+.draft-quick .draft-save-link,
+.draft-quick .draft-count-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 0.9rem;
+  color: #212529;
+  cursor: pointer;
+}
+.draft-quick .draft-save-link:hover,
+.draft-quick .draft-count-link:hover {
+  text-decoration: underline;
+}
+.draft-quick .draft-count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e9ecef;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #495057;
+}
+.draft-list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+.draft-list-item:last-child {
+  border-bottom: 0;
+}
+.draft-list-title {
+  font-weight: 600;
+  margin: 0;
+}
+.draft-list-meta {
+  font-size: 0.85rem;
+  color: #868e96;
+  margin-top: 4px;
 }
 </style>
 </head>
@@ -295,12 +368,13 @@
               </select>
             </div>
             <div class="editor-top-bar-right">
-              <button type="button" class="btn btn-outline-info" id="loadDraftBtn">
-                불러오기
-              </button>
-              <button type="button" class="btn btn-outline-secondary" id="saveBtn">
-                임시 저장
-              </button>
+              <!-- 네이버 블로그 스타일: 저장 + 저장된 글 개수 -->
+              <div class="draft-quick" aria-label="임시저장">
+                <button type="button" class="draft-save-link" id="draftSaveBtn">저장</button>
+                <button type="button" class="draft-count-link" id="draftListBtn" title="임시저장 글 목록">
+                  <span class="draft-count" id="draftCount">0</span>
+                </button>
+              </div>
               <button type="submit" class="btn btn-primary" id="publishBtn">
                 발행
               </button>
@@ -353,7 +427,7 @@
               <button type="button" class="btn btn-sm btn-outline-secondary" id="imageUploadBtn" title="이미지">
                 🖼️
               </button>
-              <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
+              <input type="file" id="imageUploadInput" accept="image/*" multiple style="display: none;">
               <div style="flex-grow: 1;"></div>
             </div>
             <div class="editor-content" id="editorContent"></div>
@@ -417,6 +491,29 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-primary" id="publishFromModalBtn">발행</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 임시저장 글 목록 모달 -->
+      <div class="modal fade" id="draftListModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">임시저장 글</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="text-muted mb-2">
+                총 <span id="draftListTotal" style="color: var(--primary-pink); font-weight: 600;">0</span>개
+              </div>
+              <div id="draftListContainer"></div>
+              <div id="draftListEmpty" class="text-muted" style="display:none;">임시저장된 글이 없습니다.</div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-danger" id="draftDeleteAllBtn">전체 삭제</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
             </div>
           </div>
         </div>
@@ -568,6 +665,80 @@ const SecurityUtils = {
 let uploadedImageUrls = new Set();
 let usedImageUrls = new Set(); // 게시글에 실제로 사용된 이미지
 
+// ===== 임시저장 (다중 목록) =====
+const DraftStorage = {
+  KEY_LIST: 'draft_posts',
+  LEGACY_KEY_SINGLE: 'draft_post', // 기존 단일 저장(호환)
+  MAX_ITEMS: 30,
+
+  _safeParse(json, fallback) {
+    try {
+      return JSON.parse(json);
+    } catch (_) {
+      return fallback;
+    }
+  },
+
+  getList() {
+    const raw = localStorage.getItem(this.KEY_LIST);
+    const list = raw ? this._safeParse(raw, []) : [];
+    return Array.isArray(list) ? list : [];
+  },
+
+  setList(list) {
+    localStorage.setItem(this.KEY_LIST, JSON.stringify(list));
+  },
+
+  migrateLegacyIfNeeded() {
+    const legacy = localStorage.getItem(this.LEGACY_KEY_SINGLE);
+    if (!legacy) return;
+
+    const legacyDraft = this._safeParse(legacy, null);
+    if (!legacyDraft) return;
+
+    const list = this.getList();
+    // 이미 동일 내용이 들어가있으면 중복 추가하지 않음
+    const already = list.some(d => d && d.content === legacyDraft.content && d.title === legacyDraft.title);
+    if (!already) {
+      list.unshift({
+        id: `legacy-${Date.now()}`,
+        title: legacyDraft.title || '',
+        content: legacyDraft.content || '',
+        category: legacyDraft.category || '',
+        subcategory: legacyDraft.subcategory || '',
+        tags: legacyDraft.tags || '',
+        thumbnailUrl: legacyDraft.thumbnailUrl || '',
+        savedAt: Date.now()
+      });
+      this.setList(list.slice(0, this.MAX_ITEMS));
+    }
+
+    // 기존 단일 키는 제거(이제 목록 기반)
+    localStorage.removeItem(this.LEGACY_KEY_SINGLE);
+  },
+
+  save(draftData) {
+    const list = this.getList();
+    const item = {
+      id: `draft-${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+      ...draftData,
+      savedAt: Date.now()
+    };
+    list.unshift(item);
+    this.setList(list.slice(0, this.MAX_ITEMS));
+    return item;
+  },
+
+  deleteAll() {
+    localStorage.removeItem(this.KEY_LIST);
+  },
+
+  deleteById(id) {
+    const list = this.getList().filter(d => d && d.id !== id);
+    this.setList(list);
+  }
+};
+
 // 페이지 상태 플래그 (전역 스코프)
 let isPublished = false;
 let isEditMode = false;
@@ -584,10 +755,24 @@ async function uploadImageFile(file, isPostImage = false) {
     body: formData
   });
 
-  const result = await response.json();
+  // 응답이 JSON이 아닐 수도 있어(프록시/에러 페이지 등). 최대한 자세히 로그를 남긴다.
+  let result;
+  let rawText = '';
+  try {
+    rawText = await response.text();
+    result = rawText ? JSON.parse(rawText) : {};
+  } catch (e) {
+    result = { success: false, message: rawText || '서버 응답 파싱 실패' };
+  }
 
   if (!response.ok || !result.success) {
-    throw new Error(result.message || '이미지 업로드에 실패했습니다.');
+    console.error('이미지 업로드 실패 응답:', {
+      endpoint,
+      status: response.status,
+      statusText: response.statusText,
+      result
+    });
+    throw new Error(result.message || `이미지 업로드에 실패했습니다. (HTTP ${response.status})`);
   }
 
   // 게시글 이미지인 경우 추적 목록에 추가
@@ -705,6 +890,9 @@ const EditorManager = {
         throw new Error('에디터 인스턴스가 생성되지 않았습니다.');
       }
       
+      // Tab 키로 들여쓰기/내어쓰기 기능 추가
+      this.setupTabIndentation(editor);
+      
       console.log('Tiptap 에디터 초기화 완료', editor);
     } catch (error) {
       console.error('Tiptap 에디터 초기화 실패:', error);
@@ -718,6 +906,187 @@ const EditorManager = {
       });
       alert('에디터를 초기화하는 중 오류가 발생했습니다: ' + error.message);
     }
+  },
+
+  // Tab 키로 들여쓰기/내어쓰기 기능 설정
+  setupTabIndentation(editor) {
+    if (!editor) return;
+    
+    // 에디터의 DOM 요소에 키보드 이벤트 리스너 추가
+    const editorElement = editor.view.dom;
+    
+    editorElement.addEventListener('keydown', (e) => {
+      // Tab 키 처리
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        
+        const { state } = editor.view;
+        const { selection } = state;
+        const { $from, $to } = selection;
+        
+        // 리스트 아이템 내부에 있는 경우
+        let listItem = null;
+        let depth = 0;
+        for (let i = $from.depth; i > 0; i--) {
+          const node = $from.node(i);
+          if (node && (node.type.name === 'listItem' || node.type.name === 'taskItem')) {
+            listItem = node;
+            depth = i;
+            break;
+          }
+        }
+        
+        if (listItem) {
+          if (e.shiftKey) {
+            // Shift+Tab: 내어쓰기 (리스트 레벨 감소)
+            editor.chain().focus().liftListItem('listItem').run();
+          } else {
+            // Tab: 들여쓰기 (리스트 레벨 증가)
+            editor.chain().focus().sinkListItem('listItem').run();
+          }
+          return;
+        }
+        
+        // 일반 텍스트의 경우: 들여쓰기 문자 삽입
+        const indentSize = 4; // 4칸 들여쓰기
+        const indent = ' '.repeat(indentSize);
+        
+        if (e.shiftKey) {
+          // Shift+Tab: 내어쓰기 (선택된 텍스트의 앞 공백 제거)
+          if (!selection.empty) {
+            const text = state.doc.textBetween($from.pos, $to.pos);
+            const lines = text.split('\n');
+            const unindentedLines = lines.map(line => {
+              // 각 줄의 앞에서 최대 indentSize만큼 공백 제거
+              if (line.startsWith(' '.repeat(indentSize))) {
+                return line.substring(indentSize);
+              } else if (line.startsWith(' ')) {
+                // 1칸 이상의 공백이 있으면 1칸만 제거
+                let spaces = 0;
+                for (let i = 0; i < line.length && line[i] === ' '; i++) {
+                  spaces++;
+                }
+                return line.substring(Math.min(spaces, indentSize));
+              }
+              return line;
+            });
+            const unindentedText = unindentedLines.join('\n');
+            editor.chain().focus().insertContent(unindentedText, { replaceSelection: true }).run();
+          }
+        } else {
+          // Tab: 들여쓰기 (공백 삽입)
+          if (selection.empty) {
+            // 커서 위치에 들여쓰기 삽입
+            editor.chain().focus().insertContent(indent).run();
+          } else {
+            // 선택된 텍스트의 각 줄 앞에 들여쓰기 추가
+            const text = state.doc.textBetween($from.pos, $to.pos);
+            const lines = text.split('\n');
+            const indentedLines = lines.map(line => indent + line);
+            const indentedText = indentedLines.join('\n');
+            editor.chain().focus().insertContent(indentedText, { replaceSelection: true }).run();
+          }
+        }
+      }
+      
+      // 백스페이스 키 처리: 목록에서 마커만 제거하고 개행 유지
+      if (e.key === 'Backspace' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const { state } = editor.view;
+        const { selection } = state;
+        const { $from } = selection;
+        
+        // 리스트 아이템 내부에 있는지 확인
+        let listItem = null;
+        let listItemDepth = -1;
+        for (let i = $from.depth; i > 0; i--) {
+          const node = $from.node(i);
+          if (node && (node.type.name === 'listItem' || node.type.name === 'taskItem')) {
+            listItem = node;
+            listItemDepth = i;
+            break;
+          }
+        }
+        
+        if (listItem && selection.empty) {
+          // 리스트 아이템의 시작 위치
+          const listItemStart = $from.start(listItemDepth);
+          const currentPos = $from.pos;
+          
+          // 리스트 아이템 내부의 첫 번째 텍스트 노드 시작 위치 계산
+          let firstTextPos = listItemStart;
+          
+          // 리스트 아이템의 첫 번째 자식 노드 찾기
+          if (listItem.firstChild) {
+            firstTextPos = listItemStart + 1;
+            if (listItem.firstChild.type && listItem.firstChild.type.name === 'paragraph') {
+              firstTextPos = listItemStart + 2; // <li> + <p> 다음
+            }
+          } else {
+            firstTextPos = listItemStart + 1;
+          }
+          
+          // 커서가 리스트 아이템의 정확한 시작 위치에 있는지 확인
+          // 그리고 리스트 아이템이 비어있는지 확인
+          const isAtStartAndEmpty = (currentPos === firstTextPos) && 
+                                   (listItem.textContent.trim() === '');
+          
+          if (isAtStartAndEmpty) {
+            // 리스트 아이템이 비어있고 커서가 시작 위치에 있는 경우
+            // 첫 번째 백스페이스: 목록 마커만 제거하고 일반 문단으로 변환 (개행 유지)
+            e.preventDefault();
+            
+            // 리스트에서 제거하고 문단으로 변환
+            // liftListItem을 사용하여 리스트에서 제거
+            const canLift = editor.can().liftListItem('listItem');
+            if (canLift) {
+              editor.chain()
+                .focus()
+                .liftListItem('listItem')
+                .run();
+            } else {
+              // lift가 불가능한 경우 (최상위 레벨) setParagraph 사용
+              editor.chain()
+                .focus()
+                .setParagraph()
+                .run();
+            }
+            
+            return;
+          }
+        }
+        
+        // 일반 문단에서 백스페이스 처리: 이전 줄과 합치기
+        if (!listItem && selection.empty) {
+          const currentNode = $from.node();
+          if (currentNode && currentNode.type.name === 'paragraph') {
+            const paragraphStart = $from.start();
+            const currentPos = $from.pos;
+            
+            // 커서가 문단의 시작 위치에 있고 내용이 비어있는 경우
+            if (currentPos === paragraphStart && currentNode.textContent.trim() === '') {
+              // 이전 노드와 합치기
+              e.preventDefault();
+              
+              // 이전 노드 찾기
+              if (paragraphStart > 1) {
+                const tr = state.tr;
+                // 현재 빈 문단 삭제
+                tr.delete(paragraphStart - 1, paragraphStart + currentNode.nodeSize - 1);
+                
+                // 커서를 이전 문단의 끝으로 이동
+                const newPos = paragraphStart - 2;
+                if (newPos > 0) {
+                  tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+                }
+                
+                editor.view.dispatch(tr);
+                return;
+              }
+            }
+          }
+        }
+      }
+    });
   },
 
   setupToolbar() {
@@ -1008,63 +1377,25 @@ const EditorManager = {
       this.executePublish(previewModal);
     });
 
-    document.getElementById('saveBtn').addEventListener('click', () => {
-      // 임시 저장 로직
-      const title = this.titleElement.value.trim();
-      let content = '';
-      
-      if (editor) {
-        content = editor.getHTML();
-      }
-      
-      // XSS 보안 처리
-      content = SecurityUtils.sanitizeHtml(content);
-      
-      // 임시 저장 시에도 사용된 이미지 추출 및 표시 (이미지 삭제 방지)
-      const imageUrls = extractImageUrlsFromContent(content);
-      imageUrls.forEach(url => usedImageUrls.add(url));
-      
-      // 썸네일 이미지도 사용된 것으로 표시
-      const thumbnailUrlField = document.getElementById('thumbnailUrl');
-      const thumbnailUrlValue = thumbnailUrlField ? thumbnailUrlField.value.trim() : '';
-      if (thumbnailUrlValue && thumbnailUrlValue.startsWith('/uploads/images/')) {
-        usedImageUrls.add(thumbnailUrlValue);
-      }
-      
-      const draftData = {
-        title: SecurityUtils.escapeHtml(title),
-        content: content,
-        category: document.getElementById('postCategory').value || '',
-        subcategory: document.getElementById('postSubCategory').value || '',
-        tags: document.getElementById('postTags').value || '',
-        thumbnailUrl: document.getElementById('thumbnailUrl') ? document.getElementById('thumbnailUrl').value || '' : ''
-      };
-      
-      // localStorage에 저장 (실제로는 서버에 저장)
-      localStorage.setItem('draft_post', JSON.stringify(draftData));
-      alert('임시 저장되었습니다.');
-    });
-
-    // 불러오기 버튼 이벤트
-    document.getElementById('loadDraftBtn').addEventListener('click', () => {
-      this.loadDraft();
-    });
-
   },
 
-  // 임시 저장 데이터 불러오기 함수
-  loadDraft() {
-    const savedDraft = localStorage.getItem('draft_post');
-    if (!savedDraft) {
-      alert('불러올 임시 저장 데이터가 없습니다.');
-      return;
+  // 임시 저장 데이터 불러오기 함수 (특정 draft를 넘기면 그걸 불러옴)
+  loadDraft(draft = null) {
+    DraftStorage.migrateLegacyIfNeeded();
+    let resolvedDraft = draft;
+
+    if (!resolvedDraft) {
+      const list = DraftStorage.getList();
+      if (!list || list.length === 0) {
+        alert('불러올 임시 저장 데이터가 없습니다.');
+        return;
+      }
+      resolvedDraft = list[0]; // 기본: 가장 최근 저장
     }
 
     try {
-      const draft = JSON.parse(savedDraft);
-      
       // 현재 내용이 있는 경우 확인
-      const hasContent = this.titleElement.value.trim() || 
+      const hasContent = this.titleElement.value.trim() ||
                         (editor && editor.getText().trim());
       
       if (hasContent) {
@@ -1072,39 +1403,39 @@ const EditorManager = {
           return;
         }
       }
-
+      
       // 제목 복원
-      this.titleElement.value = draft.title || '';
+      this.titleElement.value = resolvedDraft.title || '';
       
       // 에디터 내용 복원
-      if (editor && draft.content) {
-        editor.commands.setContent(draft.content);
+      if (editor && resolvedDraft.content) {
+        editor.commands.setContent(resolvedDraft.content);
       }
       
       // 카테고리 복원 (메뉴 로드 완료 후)
-      if (draft.category) {
+      if (resolvedDraft.category) {
         setTimeout(() => {
           const categorySelect = document.getElementById('postCategory');
           if (categorySelect) {
-            categorySelect.value = draft.category;
-            updateThumbnailVisibility(draft.category);
+            categorySelect.value = resolvedDraft.category;
+            updateThumbnailVisibility(resolvedDraft.category);
             
             // 카테고리 변경 이벤트 트리거하여 소메뉴 업데이트
             categorySelect.dispatchEvent(new Event('change'));
             
             // 소메뉴도 복원
-            if (draft.subcategory) {
+            if (resolvedDraft.subcategory) {
               setTimeout(() => {
                 const subCategorySelect = document.getElementById('postSubCategory');
                 if (subCategorySelect) {
-                  subCategorySelect.value = draft.subcategory;
+                  subCategorySelect.value = resolvedDraft.subcategory;
                 }
               }, 100);
             }
 
             // 썸네일 복원
-            if (draft.category === '1' && draft.thumbnailUrl) {
-              setThumbnailSelection(draft.thumbnailUrl, draft.thumbnailUrl);
+            if (resolvedDraft.category === '1' && resolvedDraft.thumbnailUrl) {
+              setThumbnailSelection(resolvedDraft.thumbnailUrl, resolvedDraft.thumbnailUrl);
             } else {
               clearThumbnailSelection();
             }
@@ -1113,8 +1444,8 @@ const EditorManager = {
       }
       
       // 태그 복원
-      if (draft.tags) {
-        const tags = draft.tags.split(',').map(t => t.trim()).filter(t => t);
+      if (resolvedDraft.tags) {
+        const tags = resolvedDraft.tags.split(',').map(t => t.trim()).filter(t => t);
         // tagManager를 통해 태그 설정
         if (window.tagManager && window.tagManager.setTags) {
           window.tagManager.setTags(tags);
@@ -1161,37 +1492,72 @@ const EditorManager = {
     
     // 파일 선택 시 업로드 처리
     imageUploadInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      // 파일 타입 검증
-      if (!file.type.startsWith('image/')) {
-        alert('이미지 파일만 업로드할 수 있습니다.');
-        return;
-      }
-      
-      // 파일 크기 검증 (5MB 제한)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('이미지 파일 크기는 5MB 이하여야 합니다.');
-        return;
-      }
-      
-      try {
-        // 게시글 이미지로 업로드
-        const result = await uploadImageFile(file, true);
-        
-        // 이미지를 에디터에 삽입
-        editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
-        
-        // 주의: 여기서는 usedImageUrls에 추가하지 않음
-        // 임시 저장 또는 발행 시에만 사용된 이미지로 표시됨
-      } catch (error) {
-        console.error('이미지 업로드 오류:', error);
-        alert(error.message || '이미지 업로드 중 오류가 발생했습니다.');
-      }
-      
-      // input 초기화
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+
+      // input은 먼저 초기화 (같은 파일 재선택 가능하게)
       imageUploadInput.value = '';
+
+      console.log('🖼️ 이미지 선택됨:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // 업로드/삽입은 순서 보장을 위해 순차 처리
+      for (const file of files) {
+        try {
+          // 파일 타입 검증
+          if (!file.type || !file.type.startsWith('image/')) {
+            throw new Error('이미지 파일만 업로드할 수 있습니다.');
+          }
+
+          // 파일 크기 검증 (5MB 제한)
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error('이미지 파일 크기는 5MB 이하여야 합니다.');
+          }
+
+          // 게시글 이미지로 업로드
+          const result = await uploadImageFile(file, true);
+          console.log('✅ 업로드 성공:', { name: file.name, url: result.url });
+
+          // 이미지를 에디터에 삽입
+          // - 환경에 따라 command availability가 달라서, 여러 전략을 순서대로 시도
+          let inserted = false;
+
+          try {
+            inserted = editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
+          } catch (err) {
+            inserted = false;
+          }
+
+          try {
+            // 커서를 다음 줄로 내리기(가능하면)
+            if (editor?.commands?.createParagraphNear) {
+              editor.commands.createParagraphNear();
+            } else if (editor?.commands?.enter) {
+              editor.commands.enter();
+            } else {
+              editor.chain().focus().insertContent({ type: 'paragraph' }).run();
+            }
+          } catch (err) {
+            // 무시: 이미지 삽입 자체가 핵심
+          }
+
+          if (!inserted) {
+            throw new Error('에디터에 이미지를 삽입하지 못했습니다.');
+          }
+
+          successCount++;
+          // 주의: 여기서는 usedImageUrls에 추가하지 않음 (임시저장/발행 시 처리)
+        } catch (error) {
+          failCount++;
+          console.error('❌ 이미지 처리 실패:', { file: file?.name, error });
+        }
+      }
+
+      if (failCount > 0) {
+        alert(`이미지 업로드/삽입 중 일부가 실패했습니다. (성공 ${successCount}개 / 실패 ${failCount}개)\n브라우저 콘솔과 네트워크 탭에서 /api/upload/post-image 응답을 확인해주세요.`);
+      }
     });
   },
 
@@ -1831,6 +2197,93 @@ const EditorManager = {
   }
 };
 
+// ===== 임시저장 UI 제어 =====
+function formatDraftDate(ts) {
+  try {
+    const d = new Date(ts);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
+  } catch (_) {
+    return '';
+  }
+}
+
+function updateDraftCountUI() {
+  DraftStorage.migrateLegacyIfNeeded();
+  const countEl = document.getElementById('draftCount');
+  const totalEl = document.getElementById('draftListTotal');
+  const list = DraftStorage.getList();
+  if (countEl) countEl.textContent = String(list.length);
+  if (totalEl) totalEl.textContent = String(list.length);
+}
+
+function renderDraftListUI() {
+  DraftStorage.migrateLegacyIfNeeded();
+  const list = DraftStorage.getList();
+
+  const container = document.getElementById('draftListContainer');
+  const empty = document.getElementById('draftListEmpty');
+  const totalEl = document.getElementById('draftListTotal');
+
+  if (!container || !empty) return;
+  if (totalEl) totalEl.textContent = String(list.length);
+
+  if (list.length === 0) {
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  container.innerHTML = list.map(d => {
+    const title = (d.title || '').trim() || '(제목 없음)';
+    const when = d.savedAt ? formatDraftDate(d.savedAt) : '';
+    const safeTitle = SecurityUtils.escapeHtml(title);
+    const safeWhen = SecurityUtils.escapeHtml(when);
+    return `
+      <div class="draft-list-item" data-draft-id="${SecurityUtils.escapeHtml(d.id)}">
+        <div>
+          <div class="draft-list-title">${safeTitle}</div>
+          <div class="draft-list-meta">${safeWhen}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm draft-load-btn">불러오기</button>
+          <button type="button" class="btn btn-outline-danger btn-sm draft-delete-btn">삭제</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.draft-load-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const row = e.target.closest('.draft-list-item');
+      const id = row?.getAttribute('data-draft-id');
+      const draft = DraftStorage.getList().find(x => x && x.id === id);
+      if (!draft) return;
+      EditorManager.loadDraft(draft);
+      const modalEl = document.getElementById('draftListModal');
+      const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+      if (modal) modal.hide();
+    });
+  });
+
+  container.querySelectorAll('.draft-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const row = e.target.closest('.draft-list-item');
+      const id = row?.getAttribute('data-draft-id');
+      if (!id) return;
+      if (!confirm('이 임시저장 글을 삭제할까요?')) return;
+      DraftStorage.deleteById(id);
+      updateDraftCountUI();
+      renderDraftListUI();
+    });
+  });
+}
+
 // 로그인 체크 함수
 function getStoredUser() {
   try {
@@ -1902,6 +2355,75 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('TiptapEditor.initTiptapEditor:', typeof TiptapEditor?.initTiptapEditor);
   
   await EditorManager.init();
+
+  // 임시저장 카운트 초기화 및 버튼 이벤트 연결
+  updateDraftCountUI();
+  const draftListModal = new bootstrap.Modal(document.getElementById('draftListModal'));
+  const draftSaveBtn = document.getElementById('draftSaveBtn');
+  const draftListBtn = document.getElementById('draftListBtn');
+  const draftDeleteAllBtn = document.getElementById('draftDeleteAllBtn');
+  const draftListModalEl = document.getElementById('draftListModal');
+
+  if (draftSaveBtn) {
+    draftSaveBtn.addEventListener('click', () => {
+      // 임시 저장 로직 (목록에 추가)
+      const title = EditorManager.titleElement.value.trim();
+      let content = editor ? editor.getHTML() : '';
+
+      // XSS 보안 처리
+      content = SecurityUtils.sanitizeHtml(content);
+
+      // 임시 저장 시에도 사용된 이미지 추출 및 표시 (이미지 삭제 방지)
+      const imageUrls = extractImageUrlsFromContent(content);
+      imageUrls.forEach(url => usedImageUrls.add(url));
+
+      // 썸네일 이미지도 사용된 것으로 표시
+      const thumbnailUrlField = document.getElementById('thumbnailUrl');
+      const thumbnailUrlValue = thumbnailUrlField ? thumbnailUrlField.value.trim() : '';
+      if (thumbnailUrlValue && thumbnailUrlValue.startsWith('/uploads/images/')) {
+        usedImageUrls.add(thumbnailUrlValue);
+      }
+
+      const draftData = {
+        // 저장은 원문 그대로, 렌더링 시 escape 처리
+        title: title,
+        content: content,
+        category: document.getElementById('postCategory').value || '',
+        subcategory: document.getElementById('postSubCategory').value || '',
+        tags: document.getElementById('postTags').value || '',
+        thumbnailUrl: document.getElementById('thumbnailUrl') ? document.getElementById('thumbnailUrl').value || '' : ''
+      };
+
+      DraftStorage.migrateLegacyIfNeeded();
+      DraftStorage.save(draftData);
+      updateDraftCountUI();
+      alert('임시 저장되었습니다.');
+    });
+  }
+
+  if (draftListBtn) {
+    draftListBtn.addEventListener('click', () => {
+      updateDraftCountUI();
+      renderDraftListUI();
+      draftListModal.show();
+    });
+  }
+
+  if (draftDeleteAllBtn) {
+    draftDeleteAllBtn.addEventListener('click', () => {
+      if (!confirm('임시저장 글을 모두 삭제할까요?')) return;
+      DraftStorage.deleteAll();
+      updateDraftCountUI();
+      renderDraftListUI();
+    });
+  }
+
+  if (draftListModalEl) {
+    draftListModalEl.addEventListener('show.bs.modal', () => {
+      updateDraftCountUI();
+      renderDraftListUI();
+    });
+  }
   
   // Footer 로드
   fetch('/footer.html')
@@ -2258,10 +2780,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       setDropdownsFromUrl();
     } else {
       // 임시 저장 데이터 복원 (URL 파라미터가 없을 때만)
-      const savedDraft = localStorage.getItem('draft_post');
-      if (savedDraft) {
+      DraftStorage.migrateLegacyIfNeeded();
+      const draftList = DraftStorage.getList();
+      if (draftList && draftList.length > 0) {
         if (confirm('임시 저장된 게시글이 있습니다. 불러오시겠습니까?')) {
-          EditorManager.loadDraft();
+          EditorManager.loadDraft(draftList[0]);
         }
       }
     }
